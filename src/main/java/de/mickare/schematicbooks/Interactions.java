@@ -481,8 +481,9 @@ public class Interactions {
               new ComponentBuilder("§cYou are missing materials!\n§7Materials needed:");
           materials.entrySet().stream().filter(MATERIALS_FILTER).forEach(e -> {
 
+            cb.append("\n");
             cb.append("§7 " + e.getKey().getBlockType().getName() + ":§d" + e.getKey().getData()
-                + "§7  x  §d" + e.getValue() + "\n");
+                + "§7  x  §d" + e.getValue() + "");
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
                 createItemInfo(e.getKey().getId(), e.getValue(), e.getKey().getData())));
 
