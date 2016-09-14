@@ -482,7 +482,7 @@ public class Interactions {
           materials.entrySet().stream().filter(MATERIALS_FILTER).forEach(e -> {
 
             cb.append("\n");
-            cb.append("§7 " + e.getKey().getBlockType().getName() + ":§d" + e.getKey().getData()
+            cb.append("§7 " + e.getKey().getBlockType().getName() + ":" + e.getKey().getData()
                 + "§7  x  §d" + e.getValue() + "");
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
                 createItemInfo(e.getKey().getId(), e.getValue(), e.getKey().getData())));

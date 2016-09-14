@@ -29,7 +29,7 @@ public class InteractListener extends AbstractListener {
         .ifPresent(g -> event.setCancelled(true));
   }
 
-  @EventHandler
+  @EventHandler(priority = EventPriority.LOW)
   public void onInteractBookPlayerDamage(final EntityDamageByEntityEvent event) {
     if (event.getDamager() instanceof Player) {
       final Player player = (Player) event.getDamager();
@@ -38,19 +38,19 @@ public class InteractListener extends AbstractListener {
     }
   }
 
-  @EventHandler
+  @EventHandler(priority = EventPriority.LOW)
   public void onInteractBook(final PlayerInteractAtEntityEvent event) {
     Interactions.showInfo(event, event.getPlayer(), event.getRightClicked());
   }
 
-  @EventHandler
+  @EventHandler(priority = EventPriority.LOW)
   public void onInteractBook(final PlayerInteractEntityEvent event) {
     Interactions.showInfo(event, event.getPlayer(), event.getRightClicked());
   }
 
 
 
-  @EventHandler
+  @EventHandler(priority = EventPriority.LOW)
   public void onClick(PlayerInteractEvent event) {
 
     final Player player = event.getPlayer();
