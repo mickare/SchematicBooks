@@ -62,6 +62,10 @@ public class InfoManager {
 
   }
 
+  public void invalidateAll() {
+    this.schematics.invalidateAll();
+  }
+
   private Logger logger() {
     return plugin.getLogger();
   }

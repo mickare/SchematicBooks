@@ -56,8 +56,12 @@ public class EntityManager {
     worlds.asMap().values().forEach(WorldSchematicEntityCache::saveAll);
   }
 
-  public void unloadAll() {
+  public void invalidateAll() {
     this.worlds.invalidateAll();
+  }
+
+  public void unloadAll() {
+    this.invalidateAll();
   }
 
 }

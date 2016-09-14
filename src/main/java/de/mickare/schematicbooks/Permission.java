@@ -1,7 +1,6 @@
 package de.mickare.schematicbooks;
 
 import org.bukkit.permissions.Permissible;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import com.google.common.base.Preconditions;
 
@@ -9,6 +8,7 @@ public enum Permission {
 
   SCHEMATIC_ITEM("schematicbooks"),
 
+  RELOAD(SCHEMATIC_ITEM, "reload"),
   SAVE(SCHEMATIC_ITEM, "save"),
   GET(SCHEMATIC_ITEM, "get"),
   SHOW(SCHEMATIC_ITEM, "show"),

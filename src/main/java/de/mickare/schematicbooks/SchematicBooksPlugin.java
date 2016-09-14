@@ -121,7 +121,7 @@ public class SchematicBooksPlugin extends JavaPlugin {
     }.runTaskLater(this, 1);
   }
 
-  private void preloadLoadedChunks() {
+  public void preloadLoadedChunks() {
     for (World world : Bukkit.getWorlds()) {
       for (Chunk chunk : world.getLoadedChunks()) {
         SchematicBooksPlugin.this.entityManager.getCache(world).getChunk(chunk);

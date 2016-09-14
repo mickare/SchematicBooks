@@ -66,9 +66,6 @@ public class SchematicEntity {
       throws IllegalArgumentException, NullPointerException {
     Preconditions.checkArgument(name.length() > 0);
     Preconditions.checkNotNull(rotation);
-    Preconditions.checkArgument(start.getX() != end.getX());
-    Preconditions.checkArgument(start.getY() != end.getY());
-    Preconditions.checkArgument(start.getZ() != end.getZ());
     Preconditions.checkNotNull(entities);
     Preconditions.checkNotNull(owner);
     this.name = name;

@@ -1,4 +1,4 @@
-package de.mickare.schematicbooks.commands.items;
+package de.mickare.schematicbooks.commands.books;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;

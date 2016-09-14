@@ -80,7 +80,7 @@ public class Interactions {
   // Helper for streams
   private static final Predicate<? super Entry<EnhancedBaseItem, Integer>> MATERIALS_FILTER =
       e -> (!IGNORED_MATERIALS.contains(e.getKey()) && e.getValue() > 0);
-  private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+      public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
   // **************************************************
   // Timeouts

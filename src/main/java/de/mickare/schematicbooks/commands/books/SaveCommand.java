@@ -1,7 +1,8 @@
-package de.mickare.schematicbooks.commands.items;
+package de.mickare.schematicbooks.commands.books;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -9,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -30,6 +32,7 @@ import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.session.ClipboardHolder;
 
+import de.mickare.schematicbooks.Interactions;
 import de.mickare.schematicbooks.Permission;
 import de.mickare.schematicbooks.SchematicBook;
 import de.mickare.schematicbooks.SchematicBookInfo;
@@ -120,7 +123,7 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
     return sb.toString();
   }
 
-  private void giveEditBook(final Player player, final String permission) {
+  public void giveEditBook(final Player player, final String permission) {
 
     final String loreKey = newLoreKey(player);
     BookEdit edit = new BookEdit(player.getUniqueId(), player.getLocation(), loreKey, permission);
@@ -136,12 +139,16 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
         Long.toUnsignedString(player.getUniqueId().getLeastSignificantBits(), UUID_RADIX)));
 
     StringBuilder sb1 = new StringBuilder();
-    sb1.append("==============\n");
-    sb1.append(" SCHEMATIC \n");
-    sb1.append("==============\n");
-    sb1.append("<name>\n");
-    sb1.append("by\n");
-    sb1.append(player.getName());
+    sb1.append("&6==============\n");
+    sb1.append("&6 SCHEMATIC \n");
+    sb1.append("&6==============\n");
+    sb1.append("&9{name}\n");
+    sb1.append("&8by\n");
+    sb1.append("&9{creator}\n");
+    sb1.append("&8{rotation}\n");
+    sb1.append("&8{timestamp}");
+    sb1.append("&8{permission}");
+
     meta.setPages(Lists.newArrayList(sb1.toString()));
 
     book.setItemMeta(meta);
@@ -178,8 +185,22 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
 
       String creator = player.getName();
       Rotation rotation = Rotation.fromYaw(edit.getLocation().getYaw());
-      List<String> description = meta.getPages();
       String permission = edit.getPermission();
+
+      List<String> description = meta.getPages();
+
+      // Format pages
+      for (int i = 0; i < description.size(); ++i) {
+        String page = description.get(i);
+        page = page.replace("{name}", name);
+        page = page.replace("{creator}", creator);
+        page = page.replace("{rotation}", rotation.name());
+        page = page.replace("{permission}", (permission == null) ? "" : permission);
+        page = page.replace("{timestamp}",
+            Interactions.DATE_FORMAT.format(new Date(System.currentTimeMillis())));
+        page = ChatColor.translateAlternateColorCodes('&', page);
+        description.set(i, page);
+      }
 
       ClipboardHolder holder = getClipboard(player);
       if (holder == null) {

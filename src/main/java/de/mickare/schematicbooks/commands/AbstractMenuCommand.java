@@ -57,6 +57,12 @@ public abstract class AbstractMenuCommand<P extends JavaPlugin> extends Abstract
     return this.commands;
   }
 
+  @SuppressWarnings("unchecked")
+  public <C extends AbstractCommand<?>> C getCommand(Class<C> commandClass) {
+    Preconditions.checkNotNull(commandClass);
+    return (C) commands.values().stream().filter(commandClass::isInstance).findFirst().orElse(null);
+  }
+
   @Override
   public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
