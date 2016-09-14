@@ -1,6 +1,5 @@
 package de.mickare.schematicbooks.data;
 
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -10,6 +9,7 @@ import org.bukkit.entity.Entity;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import de.mickare.schematicbooks.SchematicBookInfo;
 import de.mickare.schematicbooks.util.IntRegion;
@@ -88,13 +88,14 @@ public class SchematicEntity {
     return entities.contains(entityID);
   }
 
-  public Stream<Entity> getEntities(World world, int additional) {
-    return hitBox.getChunks(additional).stream()//
-        .map(pos -> world.getChunkAt(pos.getX(), pos.getZ()))//
-        .filter(c -> c.isLoaded() ? true : c.load(false))//
-        .flatMap(c -> Arrays.stream(c.getEntities()))//
-        .filter(e -> hasEntity(e.getUniqueId()))//
-    ;
+  public Stream<Entity> getEntityObjects(World world) {
+    if (this.entities.isEmpty()) {
+      return Stream.empty();
+    }
+    Set<UUID> remainingEntities = Sets.newHashSet(this.entities);
+    return world.getEntities().stream()//
+        .filter(e -> remainingEntities.size() > 0)//
+        .filter(e -> remainingEntities.remove(e.getUniqueId()));
   }
 
   public void save(WorldSchematicEntityStore store) throws DataStoreException {

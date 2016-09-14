@@ -3,6 +3,7 @@ package de.mickare.schematicbooks.reflection;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 
@@ -10,6 +11,13 @@ public class ReflectUtils {
 
   private ReflectUtils() {}
 
+  public static Optional<Class<?>> getClassForName(String className) {
+    try {
+      return Optional.of(Class.forName(className));
+    } catch (ClassNotFoundException e) {
+      return Optional.empty();
+    }
+  }
 
   public static Method getFirstStaticMethod(Class<?> c, Type returnType, Type... parameters) {
     Preconditions.checkNotNull(c);

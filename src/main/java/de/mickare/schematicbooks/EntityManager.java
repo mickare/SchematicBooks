@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
 import com.google.common.cache.CacheBuilder;
@@ -48,6 +49,10 @@ public class EntityManager {
     return getCache(loc.getWorld()).getEntitiesAt(loc);
   }
 
+  public Set<SchematicEntity> getEntitiesAt(Block block) {
+    return getCache(block.getWorld()).getEntitiesAt(block);
+  }
+
   public WorldSchematicEntityCache getCache(final World world) {
     return worlds.getUnchecked(world);
   }
@@ -63,5 +68,6 @@ public class EntityManager {
   public void unloadAll() {
     this.invalidateAll();
   }
+
 
 }

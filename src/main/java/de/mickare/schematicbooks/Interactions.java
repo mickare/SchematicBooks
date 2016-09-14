@@ -5,25 +5,32 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -39,9 +46,9 @@ import com.sk89q.worldedit.session.ClipboardHolder;
 
 import de.mickare.schematicbooks.data.DataStoreException;
 import de.mickare.schematicbooks.data.SchematicEntity;
+import de.mickare.schematicbooks.util.BukkitReflect;
 import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
-import de.mickare.schematicbooks.util.LocationBlockIterator;
 import de.mickare.schematicbooks.util.ParticleUtils;
 import de.mickare.schematicbooks.util.Rotation;
 import de.mickare.schematicbooks.we.EntityEditSession;
@@ -50,6 +57,7 @@ import de.mickare.schematicbooks.we.WEUtils.EnhancedBaseItem;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -61,7 +69,7 @@ public class Interactions {
 
   // Variables
   private static final int MAX_BLOCKS = 1000;
-  private static final long DEFAULT_TIMEOUT = 1000;
+  private static final long DEFAULT_TIMEOUT = 500;
   private static final int DEFAULT_SIGHT_DISTANCE = 5;
 
   private static final Set<EnhancedBaseItem> IGNORED_MATERIALS = buildIgnoredMaterials();
@@ -79,8 +87,23 @@ public class Interactions {
 
   // Helper for streams
   private static final Predicate<? super Entry<EnhancedBaseItem, Integer>> MATERIALS_FILTER =
-      e -> (!IGNORED_MATERIALS.contains(e.getKey()) && e.getValue() > 0);
-      public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+      e -> (e.getKey().getId() != 0 && !IGNORED_MATERIALS.contains(e.getKey()) && e.getValue() > 0);
+
+  public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+
+  public static Stream<SchematicEntity> entityIterate(LivingEntity entity, int distance) {
+    return blockIterate(entity, distance)//
+        .flatMap(block -> getPlugin().getEntityManager().getEntitiesAt(block).stream());
+  }
+
+  public static Stream<Block> blockIterate(LivingEntity entity, int distance) {
+    return stream(new BlockIterator(entity, distance));
+  }
+
+  public static <T> Stream<T> stream(Iterator<T> iterator) {
+    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
+        false);
+  }
 
   // **************************************************
   // Timeouts
@@ -136,7 +159,7 @@ public class Interactions {
     }
 
     getPlugin().getEntityManager().getEntityOf(clicked).ifPresent(entity -> {
-      doShowInfo(event, player, entity);
+      doShowInfo(event, player, player.getWorld(), entity);
     });
   }
 
@@ -151,19 +174,20 @@ public class Interactions {
       return;
     }
 
-    LocationBlockIterator<SchematicEntity> it = LocationBlockIterator.iterable(
-        new BlockIterator(player, distance), getPlugin().getEntityManager()::getEntitiesAt);
+    final World world = player.getWorld();
+    Iterator<SchematicEntity> it = entityIterate(player, distance).iterator();
+
     while (it.hasNext()) {
       SchematicEntity entity = it.next();
-      doShowInfo(event, player, entity);
+      doShowInfo(event, player, world, entity);
       return;
     }
   }
 
-  private static void doShowInfo(final Cancellable event, final Player player,
+  private static void doShowInfo(final Cancellable event, final Player player, final World world,
       final SchematicEntity entity) {
 
-    ParticleUtils.showParticlesForTime(getPlugin(), 20, player.getWorld(), entity, 0, 0, 255);
+    ParticleUtils.showParticlesForTime(getPlugin(), 20, world, entity, 0, 0, 255);
 
     ComponentBuilder cb = new ComponentBuilder("§7Schematic Entity Info\n");
     cb.append("§7 Name: §r" + entity.getName() + "\n");
@@ -222,6 +246,7 @@ public class Interactions {
     return true;
   }
 
+
   public static void pickupInSight(final Cancellable event, final Player player) {
     pickupInSight(event, player, DEFAULT_SIGHT_DISTANCE);
   }
@@ -233,12 +258,13 @@ public class Interactions {
       return;
     }
 
-    LocationBlockIterator<SchematicEntity> it = LocationBlockIterator.iterable(
-        new BlockIterator(player, distance), getPlugin().getEntityManager()::getEntitiesAt);
+    final World world = player.getWorld();
+    Iterator<SchematicEntity> it = entityIterate(player, distance).iterator();
+
     while (it.hasNext()) {
 
       SchematicEntity entity = it.next();
-      if (doPickup(event, player, it.getWorld(), entity)) {
+      if (doPickup(event, player, world, entity)) {
         event.setCancelled(true);
         return;
       }
@@ -320,7 +346,7 @@ public class Interactions {
     }
     try {
 
-      entity.getEntities(world, 1).forEach(Entity::remove);
+      entity.getEntityObjects(world).forEach(Entity::remove);
 
       final EnumSet<Material> materialsToRemove = EnumSet.of(Material.BARRIER);
       entity.getHitBox().positions().map(p -> world.getBlockAt(p.getX(), p.getY(), p.getZ()))//
@@ -398,6 +424,12 @@ public class Interactions {
   }
 
 
+  @SuppressWarnings("deprecation")
+  private static BaseComponent[] createItemInfo(int id, int count, short damage) {
+    return new ComponentBuilder(
+        BukkitReflect.convertItemStackToJson(new ItemStack(id, count, damage))).create();
+  }
+
   private static boolean doPlace(final Cancellable event, final Player player,
       final SchematicBookInfo info, Location to, Rotation destRotation) {
     event.setCancelled(true);
@@ -451,11 +483,12 @@ public class Interactions {
 
             cb.append("§7 " + e.getKey().getBlockType().getName() + ":§d" + e.getKey().getData()
                 + "§7  x  §d" + e.getValue() + "\n");
-            cb.event(
-                new HoverEvent(HoverEvent.Action.SHOW_ITEM,
-                    new ComponentBuilder("{id:" + e.getKey().getType() + ",Damage:"
-                        + e.getKey().getData() + ",Count:" + e.getValue().intValue() + "}")
-                            .create()));
+            cb.event(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
+                createItemInfo(e.getKey().getId(), e.getValue(), e.getKey().getData())));
+
+            // "{id:" + e.getKey().getId() + ",Damage:"
+            // + e.getKey().getData() + ",Count:" + e.getValue().intValue() + "}"
+
           });
           player.spigot().sendMessage(cb.create());
           return false;

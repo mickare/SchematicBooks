@@ -9,21 +9,21 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
 
+import org.apache.commons.lang.reflect.FieldUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.MaterialData;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.worldedit.EditSession;
@@ -145,14 +145,47 @@ public class WEUtils {
     Operations.completeLegacy(operation);
   }
 
-  /*
-   * public static Optional<UUID> getUUID(Entity entity) { Optional<UUID> result =
-   * getUUID(entity.getState()); if (result.isPresent()) { return result; } Method m =
-   * ReflectUtils.getFirstMethod(entity.getClass(), UUID.class); if (m != null) { try { UUID uuid =
-   * (UUID) m.invoke(entity); if (uuid != null) { return Optional.of(uuid); } } catch
-   * (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) { } } return
-   * Optional.empty(); }
-   */
+  private static final Optional<Class<?>> classBukkitEntity =
+      ReflectUtils.getClassForName("com.sk89q.worldedit.bukkit.BukkitEntity");
+
+
+  public static Optional<UUID> getUUID(Entity entity) {
+
+    Optional<UUID> result = getUUID(entity.getState());
+    if (result.isPresent()) {
+      return result;
+    }
+
+    if (classBukkitEntity.isPresent() && classBukkitEntity.get().isInstance(entity)) {
+      try {
+        Object entityRefObj = FieldUtils.readField(entity, "entityRef", true);
+        if (entityRefObj != null && entityRefObj instanceof WeakReference) {
+          @SuppressWarnings("unchecked")
+          org.bukkit.entity.Entity e =
+              ((WeakReference<org.bukkit.entity.Entity>) entityRefObj).get();
+          if (e != null) {
+            return Optional.of(e.getUniqueId());
+          }
+        }
+      } catch (IllegalAccessException e) {
+        Bukkit.getLogger().log(Level.WARNING,
+            "Could not access entityRef in " + classBukkitEntity.get().getName(), e);
+      }
+    }
+
+    Method m = ReflectUtils.getFirstMethod(entity.getClass(), UUID.class);
+    if (m != null) {
+      try {
+        UUID uuid = (UUID) m.invoke(entity);
+        if (uuid != null) {
+          return Optional.of(uuid);
+        }
+      } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+      }
+    }
+    return Optional.empty();
+  }
+
 
   public static Optional<UUID> getUUID(BaseEntity entity) {
     if (entity.hasNbtData()) {
@@ -180,6 +213,10 @@ public class WEUtils {
       super(other.getType(), other.getData());
     }
 
+    public int getId() {
+      return super.getType();
+    }
+    
     @Override
     public int hashCode() {
       return Objects.hash(this.getType(), this.getData());

@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -152,6 +153,11 @@ public class WorldSchematicEntityCache {
     return getChunk(loc).getEntitiesAt(loc);
   }
 
+  public Set<SchematicEntity> getEntitiesAt(Block block) {
+    return getChunk(block.getChunk()).getEntitiesAt(block.getX(), block.getY(), block.getZ());
+  }
+
+
   public SchematicEntity getEntity(long id) throws DataStoreException {
     SchematicEntity entity = this.entities_cache.getIfPresent(id);
     if (entity != null && entity.isValid()) {
@@ -159,5 +165,6 @@ public class WorldSchematicEntityCache {
     }
     return this.store.load(id);
   }
+
 
 }
