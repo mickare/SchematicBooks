@@ -6,14 +6,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 import de.mickare.schematicbooks.Interactions;
+import de.mickare.schematicbooks.SchematicBook;
 import de.mickare.schematicbooks.SchematicBooksPlugin;
 
 public class InteractListener extends AbstractListener {
@@ -22,6 +26,29 @@ public class InteractListener extends AbstractListener {
     super(plugin);
   }
 
+  @EventHandler
+  public void onAnvil(PrepareAnvilEvent event) {
+    ItemStack item = event.getResult();
+    if (item != null && SchematicBook.isSchematicBook(item)) {
+      event.setResult(null);
+    }
+  }
+
+  @EventHandler
+  public void onEnchant(PrepareItemEnchantEvent event) {
+    ItemStack item = event.getItem();
+    if (item != null && SchematicBook.isSchematicBook(item)) {
+      event.setCancelled(true);
+    }
+  }
+
+  @EventHandler
+  public void onEnchant(EnchantItemEvent event) {
+    ItemStack item = event.getItem();
+    if (item != null && SchematicBook.isSchematicBook(item)) {
+      event.setCancelled(true);
+    }
+  }
 
   @EventHandler(priority = EventPriority.HIGH)
   public void onDamage(final EntityDamageEvent event) {

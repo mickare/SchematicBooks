@@ -8,7 +8,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 
@@ -21,16 +20,6 @@ public class SchematicBook {
   private static final BigInteger SIGNATURE_KEY = new BigInteger("36812721879382", 10);
   private static final String LORE_SIGNATURE = "§e§c§0§r§3§a§2§1";
 
-  private static void xorOn(final byte[] out, final byte[] value, final int length) {
-    final int len = Math.min(length, value.length);
-    for (int i = 0; i < len; ++i) {
-      out[i % out.length] ^= value[i];
-    }
-  }
-
-  private static void xorOn(final byte[] out, final byte[] value) {
-    xorOn(out, value, value.length);
-  }
 
   public static final String createSignature(SchematicBookInfo info) {
     String key = Integer.toUnsignedString(

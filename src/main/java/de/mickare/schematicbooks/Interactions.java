@@ -40,7 +40,10 @@ import org.bukkit.util.BlockIterator;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.blocks.BlockType;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.session.ClipboardHolder;
 
@@ -52,10 +55,12 @@ import de.mickare.schematicbooks.util.IntVector;
 import de.mickare.schematicbooks.util.ParticleUtils;
 import de.mickare.schematicbooks.util.Rotation;
 import de.mickare.schematicbooks.we.EntityEditSession;
+import de.mickare.schematicbooks.we.ExcludeBlockMask;
 import de.mickare.schematicbooks.we.WEUtils;
 import de.mickare.schematicbooks.we.WEUtils.EnhancedBaseItem;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -409,8 +414,10 @@ public class Interactions {
 
       Rotation destRotation = Rotation.fromYaw((int) player.getLocation().getYaw());
 
-      if (doPlace(event, player, info, to, destRotation)) {
-        if (player.getGameMode() != GameMode.CREATIVE) {
+      PlaceResult place = doPlace(event, player, info, to, destRotation);
+
+      if (place.isSuccess()) {
+        if (player.getGameMode() != GameMode.CREATIVE && place.getEntitiesCount() != 0) {
           if (item.getAmount() > 1) {
             item.setAmount(item.getAmount() - 1);
             player.getInventory().setItemInMainHand(item);
@@ -430,18 +437,35 @@ public class Interactions {
         BukkitReflect.convertItemStackToJson(new ItemStack(id, count, damage))).create();
   }
 
-  private static boolean doPlace(final Cancellable event, final Player player,
+  private static List<BaseBlock> EXCLUDED_BLOCKS = Lists.newArrayList(//
+      new BaseBlock(BlockType.BEDROCK.getID(), -1) //
+  );
+
+  @Getter
+  @RequiredArgsConstructor
+  public static class PlaceResult {
+    public static final PlaceResult FAILED = new PlaceResult(false, 0);
+
+    public static PlaceResult success(int entitiesCount) {
+      return new PlaceResult(true, entitiesCount);
+    }
+
+    private final boolean success;
+    private final int entitiesCount;
+  }
+
+  private static PlaceResult doPlace(final Cancellable event, final Player player,
       final SchematicBookInfo info, Location to, Rotation destRotation) {
     event.setCancelled(true);
 
     if (!Permission.PLACE.checkPermission(player)) {
       Out.PERMISSION_MISSING_EXTENSION.send(player, "Schematic-Place");
-      return false;
+      return PlaceResult.FAILED;
     }
 
     if (!info.hasPermission(player)) {
       Out.PERMISSION_MISSING_EXTENSION.send(player, "Schematic <this schematic>");
-      return false;
+      return PlaceResult.FAILED;
     }
 
     Rotation rotation = Rotation.fromYaw(info.getRotation().getYaw() - destRotation.getYaw());
@@ -450,11 +474,13 @@ public class Interactions {
       File file = info.getSchematicFile(getPlugin().getSchematicFolder());
       if (!file.exists() || !file.isFile()) {
         player.sendMessage("§cFailed to build! Schematic does not exist!");
-        return false;
+        return PlaceResult.FAILED;
       }
 
       BukkitWorld world = new BukkitWorld(to.getWorld());
       EntityEditSession editSession = new EntityEditSession(world, MAX_BLOCKS);
+      editSession.setMask(new ExcludeBlockMask(world, EXCLUDED_BLOCKS));
+
       ClipboardHolder holder = WEUtils.readSchematic(world, file);
 
       WEUtils.rotate(holder, rotation.getYaw());
@@ -471,7 +497,7 @@ public class Interactions {
 
       if (!getPlugin().getPermcheck().canBuild(player, to.getWorld(), box)) {
         player.sendMessage("§cYou can not build here!");
-        return false;
+        return PlaceResult.FAILED;
       }
 
       if (player.getGameMode() != GameMode.CREATIVE) {
@@ -492,7 +518,7 @@ public class Interactions {
 
           });
           player.spigot().sendMessage(cb.create());
-          return false;
+          return PlaceResult.FAILED;
         }
       }
 
@@ -518,7 +544,7 @@ public class Interactions {
 
       Bukkit.getScheduler().runTaskLater(getPlugin(), () -> player.closeInventory(), 1);
 
-      return true;
+      return PlaceResult.success(entities.size());
     } catch (DataStoreException e) {
       getPlugin().getLogger().log(Level.SEVERE, "Failed to save schematic entity to store", e);
       player.sendMessage("§cFailed to save schematic entity!");
@@ -529,7 +555,7 @@ public class Interactions {
       getPlugin().getLogger().log(Level.SEVERE, "Failed to place schematic", e);
       player.sendMessage("§cFailed to build here!");
     }
-    return false;
+    return PlaceResult.FAILED;
   }
 
   // **************************************************
