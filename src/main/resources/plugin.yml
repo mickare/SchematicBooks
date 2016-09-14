@@ -1,0 +1,18 @@
+name: SchematicBooks
+main: de.mickare.schematicbooks.SchematicBooksPlugin
+version: 0.0.1
+website: http://www.rennschnitzel.de
+authors:
+- mickare
+description: Allows players to use schematics as books.
+softdepend:
+- WorldGuard
+- WorldEdit
+- ArmorTools
+commands:
+  sbook:
+    description: Hauptbefehl für das SchematicBooks Plugin
+    aliases:
+    - schematicbook
+    usage: /<command>
+    permission: schematicbook.main
