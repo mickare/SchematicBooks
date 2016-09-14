@@ -107,7 +107,7 @@ public class IntVector {
   }
 
   public String toString() {
-    return "IntVector[" + x + "," + y + "," + z + "]";
+    return "(" + x + "," + y + "," + z + ")";
   }
 
 }

@@ -38,6 +38,7 @@ import de.mickare.schematicbooks.SchematicBook;
 import de.mickare.schematicbooks.SchematicBookInfo;
 import de.mickare.schematicbooks.SchematicBooksPlugin;
 import de.mickare.schematicbooks.commands.AbstractCommand;
+import de.mickare.schematicbooks.util.IntVector;
 import de.mickare.schematicbooks.util.Rotation;
 import de.mickare.schematicbooks.we.WEUtils;
 import lombok.Data;
@@ -145,9 +146,10 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
     sb1.append("&9{name}\n");
     sb1.append("&8by\n");
     sb1.append("&9{creator}\n");
-    sb1.append("&8{rotation}\n");
-    sb1.append("&8{timestamp}");
-    sb1.append("&8{permission}");
+    sb1.append("&8{timestamp}\n");
+    sb1.append("&8{permission}\n");
+    sb1.append("&8Direction: {direction}\n");
+    sb1.append("&8Size: {size}\n");
 
     meta.setPages(Lists.newArrayList(sb1.toString()));
 
@@ -170,6 +172,18 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
     final BookMeta meta = event.getNewBookMeta();
     if (isValidEditMeta(player, old, edit)) {
 
+      ClipboardHolder holder = getClipboard(player);
+      if (holder == null) {
+
+        meta.setLore(Lists.newArrayList());
+        meta.setDisplayName(meta.getTitle());
+        event.setNewBookMeta(meta);
+        event.setSigning(false);
+
+        sessions.invalidate(player);
+        return;
+      }
+
       if (!event.isSigning()) {
         player.sendMessage("§cYou need to sign the book!");
         return;
@@ -187,31 +201,22 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
       Rotation rotation = Rotation.fromYaw(edit.getLocation().getYaw());
       String permission = edit.getPermission();
 
-      List<String> description = meta.getPages();
+      List<String> description =
+          meta.hasPages() ? Lists.newArrayList(meta.getPages()) : Lists.newArrayList();
 
       // Format pages
       for (int i = 0; i < description.size(); ++i) {
         String page = description.get(i);
+        page = ChatColor.translateAlternateColorCodes('&', page);
         page = page.replace("{name}", name);
         page = page.replace("{creator}", creator);
-        page = page.replace("{rotation}", rotation.name());
-        page = page.replace("{permission}", (permission == null) ? "" : permission);
         page = page.replace("{timestamp}",
             Interactions.DATE_FORMAT.format(new Date(System.currentTimeMillis())));
-        page = ChatColor.translateAlternateColorCodes('&', page);
+        page = page.replace("{permission}", (permission == null) ? "" : permission);
+        page = page.replace("{direction}", rotation.name());
+        page = page.replace("{size}",
+            IntVector.from(holder.getClipboard().getDimensions()).toString());
         description.set(i, page);
-      }
-
-      ClipboardHolder holder = getClipboard(player);
-      if (holder == null) {
-
-        meta.setLore(Lists.newArrayList());
-        meta.setDisplayName(meta.getTitle());
-        event.setNewBookMeta(meta);
-        event.setSigning(false);
-
-        sessions.invalidate(player);
-        return;
       }
 
       SchematicBookInfo info =
