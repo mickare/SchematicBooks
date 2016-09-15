@@ -20,7 +20,7 @@ public class ReloadCommand extends AbstractCommand<SchematicBooksPlugin> {
     getPlugin().getEntityManager().invalidateAll();
     getPlugin().getInfoManager().invalidateAll();
     getPlugin().getInfoManager().loadAllInfoFiles();
-    getPlugin().preloadLoadedChunks();
+    getPlugin().loadLoadedChunks();
 
     sender.sendMessage("§aReloaded!");
 

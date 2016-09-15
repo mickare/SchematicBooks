@@ -2,21 +2,23 @@ package de.mickare.schematicbooks;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.StandardOpenOption;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -25,7 +27,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -37,10 +38,12 @@ import de.mickare.schematicbooks.util.UnsafeCloseable;
 import de.mickare.schematicbooks.util.watcher.HaltablePathWatcher;
 import lombok.Getter;
 
-public class InfoManager {
+public class InfoManager implements Closeable {
 
   private @Getter final SchematicBooksPlugin plugin;
   private final InfoWatcher watcher;
+  private final PathMatcher infoFileMatcher =
+      FileSystems.getDefault().getPathMatcher("glob:**.info");;
 
   private static Gson GSON = new GsonBuilder().create();
   private LoadingCache<String, SchematicBookInfo> schematics = CacheBuilder.newBuilder()//
@@ -61,8 +64,6 @@ public class InfoManager {
     Preconditions.checkNotNull(plugin);
     this.plugin = plugin;
 
-    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadAllInfoFiles());
-
     watcher = new InfoWatcher(plugin.getSchematicFolder(), false);
     new BukkitRunnable() {
       @Override
@@ -77,10 +78,16 @@ public class InfoManager {
 
   }
 
+  public void close() throws IOException {
+    this.watcher.close();
+  }
+
   public boolean loadAllInfoFiles() {
     try {
       getInfoFiles().forEach(path -> {
-        schematics.refresh(getBookKeyOfPath(path));
+        String key = getBookKeyOfPath(path);
+        schematics.invalidate(key);
+        schematics.refresh(key);
       });
       return true;
     } catch (IOException e) {
@@ -187,15 +194,17 @@ public class InfoManager {
     return Sets.newHashSet(this.schematics.asMap().values());
   }
 
-  public Stream<Path> getInfoFiles() throws IOException {
-    return Files.find(plugin.getSchematicFolder(), 0,
-        (path, attr) -> attr.isRegularFile() && path.endsWith(".info"));
+  public Set<Path> getInfoFiles() throws IOException {
+    try (Stream<Path> find = Files.find(plugin.getSchematicFolder(), 1,
+        (path, attr) -> attr.isRegularFile() && infoFileMatcher.matches(path))) {
+      return find.collect(Collectors.toSet());
+    }
   }
 
-  private static String getBookKeyOfPath(Path path) {
-    Preconditions.checkArgument(path.endsWith(".info"));
+  private String getBookKeyOfPath(Path path) {
+    Preconditions.checkArgument(infoFileMatcher.matches(path));
     String filename = path.getFileName().toString();
-    return filename.substring(0, filename.lastIndexOf(".info"));
+    return filename.substring(0, filename.lastIndexOf(".info")).toLowerCase();
   }
 
   private class InfoWatcher extends HaltablePathWatcher {
@@ -205,7 +214,7 @@ public class InfoManager {
     }
 
     private void refreshInfoPath(Path path) {
-      if (path.endsWith(".info")) {
+      if (infoFileMatcher.matches(path)) {
         try {
           if (Files.size(path) > 0) {
             InfoManager.this.schematics.refresh(getBookKeyOfPath(path));
@@ -222,7 +231,7 @@ public class InfoManager {
 
     @Override
     protected void onEntryDelete0(Path path) {
-      if (path.endsWith(".info")) {
+      if (infoFileMatcher.matches(path)) {
         InfoManager.this.schematics.invalidate(getBookKeyOfPath(path));
       }
     }

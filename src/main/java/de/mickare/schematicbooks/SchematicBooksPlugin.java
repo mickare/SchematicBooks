@@ -69,7 +69,17 @@ public class SchematicBooksPlugin extends JavaPlugin {
   @Override
   public void onDisable() {
 
-    this.getEntityManager().unloadAll();
+    if (this.infoManager != null) {
+      try {
+        this.infoManager.close();
+      } catch (IOException e) {
+        getLogger().log(Level.WARNING, "Could not close InfoManager.", e);
+      }
+    }
+
+    if (this.entityManager != null) {
+      this.entityManager.unloadAll();
+    }
 
     getLogger().info("SchematicItem Plugin disabled!");
   }
@@ -121,26 +131,28 @@ public class SchematicBooksPlugin extends JavaPlugin {
 
     getLogger().info("SchematicItem Plugin enabled!");
 
-    doPreloadChunks(false);
+    doPreload(false);
   }
 
-  private void doPreloadChunks(boolean later) {
+  private void doPreload(boolean later) {
     if (later) {
       // Preload loaded chunks
       new BukkitRunnable() {
         @Override
         public void run() {
-          getLogger().info("Preloading for loaded chunks...");
-          preloadLoadedChunks();
+          getLogger().info("Preloading...");
+          loadLoadedChunks();
+          getInfoManager().loadAllInfoFiles();
         }
       }.runTaskLater(this, 3);
     } else {
-      getLogger().info("Preloading for loaded chunks...");
-      preloadLoadedChunks();
+      getLogger().info("Preloading...");
+      loadLoadedChunks();
+      getInfoManager().loadAllInfoFiles();
     }
   }
 
-  public void preloadLoadedChunks() {
+  public void loadLoadedChunks() {
     for (World world : Bukkit.getWorlds()) {
       for (Chunk chunk : world.getLoadedChunks()) {
         SchematicBooksPlugin.this.entityManager.getCache(world).getChunk(chunk);

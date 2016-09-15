@@ -47,7 +47,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
 import lombok.Getter;
-import lombok.Setter;
 
 /**
  * Example to watch a directory (or tree) for changes to files.
@@ -59,7 +58,7 @@ public abstract class PathWatcher implements Closeable, Runnable {
   private final BiMap<WatchKey, Path> keys = HashBiMap.create();
   private @Getter final boolean recursive;
   private @Getter volatile boolean closed = false;
-  private @Getter @Setter boolean debug = false;
+  private @Getter boolean debug = false;
 
   @SuppressWarnings("unchecked")
   private static <T> WatchEvent<T> cast(WatchEvent<?> event) {
@@ -67,13 +66,15 @@ public abstract class PathWatcher implements Closeable, Runnable {
   }
 
   private void debugFormat(String format, Object... args) {
-    if (debug)
+    if (debug) {
       System.out.format(format, args);
+    }
   }
 
   private void debugPrintln(String msg) {
-    if (debug)
+    if (debug) {
       System.out.println(msg);
+    }
   }
 
   public boolean isValid() {
@@ -137,16 +138,8 @@ public abstract class PathWatcher implements Closeable, Runnable {
    * Creates a WatchService and registers the given directory
    */
   public PathWatcher(Path dir, boolean recursive) throws IOException {
-    this(dir, recursive, false);
-  }
-
-  /**
-   * Creates a WatchService and registers the given directory
-   */
-  public PathWatcher(Path dir, boolean recursive, boolean debug) throws IOException {
     this.watcher = FileSystems.getDefault().newWatchService();
     this.recursive = recursive;
-    this.debug = debug;
 
     if (recursive) {
       debugFormat("Scanning %s ...\n", dir);
@@ -156,8 +149,11 @@ public abstract class PathWatcher implements Closeable, Runnable {
       register(dir);
     }
 
-    // enable trace after initial registration
-    this.debug = true;
+  }
+
+  public PathWatcher setDebug(boolean debug) {
+    this.debug = debug;
+    return this;
   }
 
   public void close() throws IOException {
@@ -208,10 +204,10 @@ public abstract class PathWatcher implements Closeable, Runnable {
 
           if (kind == ENTRY_CREATE) {
             onEntryCreate(child);
-          } else if (kind == ENTRY_CREATE) {
-            onEntryCreate(child);
-          } else if (kind == ENTRY_CREATE) {
-            onEntryCreate(child);
+          } else if (kind == ENTRY_DELETE) {
+            onEntryDelete(child);
+          } else if (kind == ENTRY_MODIFY) {
+            onEntryModify(child);
           }
 
         } catch (Exception e) {

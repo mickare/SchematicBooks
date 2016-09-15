@@ -14,11 +14,12 @@ public abstract class HaltablePathWatcher extends PathWatcher {
   private final Set<Path> halted = Collections.synchronizedSet(Sets.newHashSet());
 
   public HaltablePathWatcher(Path dir, boolean recursive) throws IOException {
-    this(dir, recursive, false);
+    super(dir, recursive);
   }
 
-  public HaltablePathWatcher(Path dir, boolean recursive, boolean debug) throws IOException {
-    super(dir, recursive, debug);
+  public PathWatcher setDebug(boolean debug) {
+    super.setDebug(debug);
+    return this;
   }
 
   public UnsafeCloseable halt(Path path) {
