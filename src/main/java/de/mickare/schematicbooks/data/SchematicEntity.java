@@ -16,14 +16,9 @@ import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
 import de.mickare.schematicbooks.util.Rotation;
 import lombok.Getter;
+import lombok.Setter;
 
 public class SchematicEntity {
-
-  @FunctionalInterface
-  public static interface Setter {
-    void set(String name, Rotation rotation, IntVector start, IntVector end, Set<UUID> entities,
-        long timestamp) throws IllegalArgumentException, NullPointerException;
-  }
 
   private transient @Getter boolean valid = true;
   private transient @Getter boolean dirty = false;
@@ -34,12 +29,17 @@ public class SchematicEntity {
   private @Getter Set<UUID> entities;
   private @Getter Rotation rotation;
 
-  private @Getter IntRegion hitBox;
+  private @Getter @Setter IntRegion hitBox;
   private @Getter long timestamp;
   private @Getter UUID owner;
 
   protected SchematicEntity(long id) {
     this.id = id;
+  }
+
+  public SchematicEntity dirty() {
+    this.dirty = true;
+    return this;
   }
 
   public String getKey() {

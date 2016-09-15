@@ -6,6 +6,7 @@ import org.bukkit.util.Vector;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
 @AllArgsConstructor
 public class IntVector {
@@ -22,7 +23,7 @@ public class IntVector {
     return new IntVector(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
   }
 
-  private @Getter int x, y, z;
+  private @Getter @Setter int x, y, z;
 
   public IntVector() {
     this(0, 0, 0);

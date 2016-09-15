@@ -13,8 +13,8 @@ public class ExcludeBlockMask extends BlockMask {
     super(extent, blocks);
   }
 
-  public ExcludeBlockMask(Extent extent, BaseBlock[] block) {
-    super(extent, block);
+  public ExcludeBlockMask(Extent extent, BaseBlock... blocks) {
+    super(extent, blocks);
   }
 
   @Override

@@ -28,11 +28,19 @@ public class IntRegion {
   }
 
 
+  public IntRegion(IntRegion other) {
+    this(other.getPos1(), other.getPos2());
+  }
+
   public IntRegion(IntVector first, IntVector second) {
     this.pos1 = first.min(second);
     this.pos2 = first.max(second);
   }
-  
+
+  public IntRegion copy() {
+    return new IntRegion(this);
+  }
+
   public IntVector getMinPoint() {
     return pos1.min(pos2);
   }
@@ -108,7 +116,7 @@ public class IntRegion {
   }
 
   public String toString() {
-    return "IntBox[" + this.pos1.toString() + "," + this.pos2.toString() + "]";
+    return "(min:" + this.getMinPoint().toString() + ", max:" + this.getMaxPoint().toString() + ")";
   }
 
   private IntVector getMinVector(Function<IntVector, Integer> getter) {

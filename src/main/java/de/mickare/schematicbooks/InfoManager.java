@@ -168,6 +168,7 @@ public class InfoManager implements Closeable {
     }
   }
 
+
   public SchematicBookInfo getInfo(String key) throws ExecutionException {
     return schematics.get(key.toLowerCase());
   }
@@ -176,16 +177,21 @@ public class InfoManager implements Closeable {
     return getInfo(entity.getKey());
   }
 
+  public Optional<SchematicBookInfo> getInfoOptional(String key) {
+    try {
+      return Optional.of(getInfo(key));
+    } catch (ExecutionException e) {
+      if (!e.getCause().getClass().equals(FileNotFoundException.class)) {
+        throw new RuntimeException(e);
+      }
+    }
+    return Optional.empty();
+  }
+
   public Optional<SchematicBookInfo> getInfo(ItemStack item) {
     Optional<String> key = SchematicBook.getSchematicKey(item);
     if (key.isPresent()) {
-      try {
-        return Optional.of(getInfo(key.get()));
-      } catch (ExecutionException e) {
-        if (!e.getCause().getClass().equals(FileNotFoundException.class)) {
-          throw new RuntimeException(e);
-        }
-      }
+      return getInfoOptional(key.get());
     }
     return Optional.empty();
   }

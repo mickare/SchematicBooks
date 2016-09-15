@@ -9,9 +9,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import de.mickare.schematicbooks.util.IntVectorTuple;
+import de.mickare.schematicbooks.util.IntVectorAxis;
 import de.mickare.schematicbooks.util.Rotation;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 
 @Getter
 public class SchematicBookInfo {
@@ -34,7 +36,7 @@ public class SchematicBookInfo {
 
   // Pos1 = lower
   // Pos2 = higher
-  private final IntVectorTuple hitBoxOffset = new IntVectorTuple();
+  private @Getter @Setter @NonNull IntVectorAxis hitBoxOffset = new IntVectorAxis();
 
   public SchematicBookInfo(String name, String creator, //
       Rotation rotation, //

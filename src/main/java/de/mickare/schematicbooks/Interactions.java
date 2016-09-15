@@ -50,6 +50,8 @@ import com.sk89q.worldedit.session.ClipboardHolder;
 import de.mickare.schematicbooks.commands.MainSchematicItemsCommand;
 import de.mickare.schematicbooks.data.DataStoreException;
 import de.mickare.schematicbooks.data.SchematicEntity;
+import de.mickare.schematicbooks.event.EventFactory;
+import de.mickare.schematicbooks.event.PlaceSchematicEvent;
 import de.mickare.schematicbooks.util.BukkitReflect;
 import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
@@ -57,6 +59,7 @@ import de.mickare.schematicbooks.util.ParticleUtils;
 import de.mickare.schematicbooks.util.Rotation;
 import de.mickare.schematicbooks.we.EntityEditSession;
 import de.mickare.schematicbooks.we.ExcludeBlockMask;
+import de.mickare.schematicbooks.we.PasteOperation;
 import de.mickare.schematicbooks.we.WEUtils;
 import de.mickare.schematicbooks.we.WEUtils.EnhancedBaseItem;
 import lombok.AccessLevel;
@@ -66,9 +69,9 @@ import lombok.Setter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.ComponentBuilder.FormatRetention;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.ComponentBuilder.FormatRetention;
 
 public class Interactions {
 
@@ -197,14 +200,18 @@ public class Interactions {
   private static void doShowInfo(final Cancellable event, final Player player, final World world,
       final SchematicEntity entity) {
 
+    if (EventFactory.callInfoEvent(player, world, event, entity).isCancelled()) {
+      return;
+    }
+
     ParticleUtils.showParticlesForTime(getPlugin(), 20, world, entity, 0, 0, 255);
 
-    ComponentBuilder cb = new ComponentBuilder("§6Schematic Entity Info\n");
-    cb.append("§7 Name: §r" + entity.getName() + "\n");
-    cb.append("§7 Entities: §r" + entity.getEntities().size() + "\n");
+    ComponentBuilder cb = new ComponentBuilder("§6Schematic Entity Info");
+    cb.append("\n§7 Name: §r" + entity.getName());
+    cb.append("\n§7 Entities: §r" + entity.getEntities().size());
 
     if (Permission.INFO_OWNER.checkPermission(player)) {
-      cb.append("§7 Placed by: §r");
+      cb.append("\n§7 Placed by: §r");
       String playerName = getPlugin().getPlayerName(entity.getOwner());
       if (playerName != null) {
         cb.append(playerName);
@@ -216,26 +223,26 @@ public class Interactions {
         cb.append("§d" + entity.getOwner());
       }
 
-      cb.append(" §7(" + DATE_FORMAT.format(new Date(entity.getTimestamp())) + ")\n",
+      cb.append("§7 (" + DATE_FORMAT.format(new Date(entity.getTimestamp())) + ")",
           FormatRetention.NONE);
     }
 
     try {
       SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
 
-      cb.append("§7 Created by: §r");
+      cb.append("\n§7 Created by: §r");
       UUID creatorUUID = getPlugin().getPlayerUUID(info.getCreator());
       cb.append(info.getCreator());
       if (creatorUUID != null && Permission.INFO_UUID.checkPermission(player)) {
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
             TextComponent.fromLegacyText("§d" + creatorUUID.toString())));
       }
-      cb.append("\n", FormatRetention.NONE);
+      cb.append("", FormatRetention.NONE);
       if (info.hasPermission() && Permission.INFO_PERMISSION.checkPermission(player)) {
-        cb.append("§c Permission required\n§d " + info.getPermission() + "\n");
+        cb.append("\n §c Permission required\n§d " + info.getPermission());
       }
       if (Permission.INFO_GETTER.checkPermission(player)) {
-        cb.append("§e>> §oClick to get schematic book§e <<");
+        cb.append("\n §e>> §oClick to get schematic book§e <<");
         cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
             "/" + MainSchematicItemsCommand.CMD + " get " + info.getKey()));
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
@@ -334,6 +341,8 @@ public class Interactions {
   private static boolean doPickup(final Cancellable event, final Player player, final World world,
       final SchematicEntity entity) {
 
+    EventFactory.callPickupEvent(player, world, event, entity);
+
     if (!Permission.PICKUP.checkPermission(player)) {
       Out.PERMISSION_MISSING_EXTENSION.send(player, "Schematic-Pickup");
       return false;
@@ -355,7 +364,10 @@ public class Interactions {
             player.getInventory().setItemInMainHand(SchematicBook.createItem(info));
           }
         } else {
-          player.getInventory().addItem(SchematicBook.createItem(info));
+          ItemStack book = SchematicBook.createItem(info);
+          if (player.getInventory().contains(book)) {
+            player.getInventory().addItem(book);
+          }
         }
 
         Out.SCHEMATIC_PICKED_UP.send(player, info.getKey(), info.getName());
@@ -431,7 +443,17 @@ public class Interactions {
       return;
     }
 
-    Optional<SchematicBookInfo> oinfo = getPlugin().getInfoManager().getInfo(item);
+    Optional<String> key = SchematicBook.getSchematicKey(item);
+    if (!key.isPresent()) {
+      return;
+    }
+
+    if (!getPlugin().getInfoManager().infoExists(key.get())) {
+      player.sendMessage("§cSchematic book does not exist");
+      return;
+    }
+
+    Optional<SchematicBookInfo> oinfo = getPlugin().getInfoManager().getInfoOptional(key.get());
     if (oinfo.isPresent()) {
       SchematicBookInfo info = oinfo.get();
 
@@ -445,7 +467,7 @@ public class Interactions {
       PlaceResult place = doPlace(event, player, info, to, destRotation);
       if (place.isSuccess()) {
 
-        if (player.getGameMode() != GameMode.CREATIVE && place.getEntitiesCount() != 0) {
+        if (player.getGameMode() != GameMode.CREATIVE && !place.isPlainPaste()) {
           if (item.getAmount() > 1) {
             item.setAmount(item.getAmount() - 1);
             player.getInventory().setItemInMainHand(item);
@@ -456,6 +478,8 @@ public class Interactions {
 
       }
 
+    } else {
+      player.sendMessage("§cInvalid schematic book!");
     }
   }
 
@@ -470,21 +494,39 @@ public class Interactions {
       new BaseBlock(BlockType.BEDROCK.getID(), -1) //
   );
 
+  private static List<BaseBlock> PLAIN_MASK = Lists.newArrayList(//
+      new BaseBlock(Material.BARRIER.getId(), -1) //
+  );
+
   @Getter
   @RequiredArgsConstructor
   public static class PlaceResult {
-    public static final PlaceResult FAILED = new PlaceResult(false, 0);
+    public static final PlaceResult FAILED = new PlaceResult(false, false, false, 0);
+    public static final PlaceResult CANCELLED = new PlaceResult(false, true, false, 0);
 
-    public static PlaceResult success(int entitiesCount) {
-      return new PlaceResult(true, entitiesCount);
+    public static PlaceResult success(boolean plainPaste, int entitiesCount) {
+      return new PlaceResult(true, false, plainPaste, entitiesCount);
     }
 
     private final boolean success;
+    private final boolean cancelled;
+    private final boolean plainPaste;
     private final int entitiesCount;
   }
 
   private static PlaceResult doPlace(final Cancellable event, final Player player,
-      final SchematicBookInfo info, Location to, Rotation destRotation) {
+      SchematicBookInfo info, Location to, Rotation destRotation) {
+
+    PlaceSchematicEvent placeEvent =
+        EventFactory.callPlaceEvent(player, to, event, info, destRotation);
+    if (placeEvent.isCancelled()) {
+      return PlaceResult.CANCELLED;
+    }
+    info = placeEvent.getInfo();
+    to = placeEvent.getTo();
+    destRotation = placeEvent.getRotation();
+
+
     event.setCancelled(true);
 
     if (!Permission.PLACE.checkPermission(player)) {
@@ -521,7 +563,6 @@ public class Interactions {
       boxmin.subtract(origin).add(IntVector.from(to));
       boxmax.subtract(origin).add(IntVector.from(to));
 
-
       IntRegion box = info.getHitBoxOffset().rotate(rotation).addTo(new IntRegion(boxmin, boxmax));
 
       if (!getPlugin().getPermcheck().canBuild(player, to.getWorld(), box)) {
@@ -551,8 +592,18 @@ public class Interactions {
         }
       }
 
+      PasteOperation paste = WEUtils.newPaste(editSession, holder)//
+          .ignoreAirBlocks(true).location(to);
+      if (!Permission.PLACE_PLAIN_UNMASK.checkPermission(player)) {
+        paste.addSourceMask(b -> new ExcludeBlockMask(b.clipboard()));
+      }
+      paste.buildAndPaste();
+
       WEUtils.placeSchematic(editSession, holder, to, true);
       Set<UUID> entities = editSession.getCreatedEntityUUIDs();
+
+      final boolean plainPaste =
+          entities.isEmpty() ? Permission.PLACE_PLAIN.checkPermission(player) : false;
 
       /*
        * editSession.getCreatedEntities().stream()// .map(e -> WEUtils.getUUID(e))//
@@ -565,7 +616,7 @@ public class Interactions {
 
         ParticleUtils.showParticlesForTime(getPlugin(), 20, to.getWorld(), entity, 0, 255, 0);
 
-        if (createBookEntityAnytime || !entities.isEmpty()) {
+        if (createBookEntityAnytime || !plainPaste) {
           getPlugin().getEntityManager().getCache(to.getWorld()).add(entity);
         }
       } catch (Exception e) {
@@ -575,7 +626,7 @@ public class Interactions {
 
       Bukkit.getScheduler().runTaskLater(getPlugin(), () -> player.closeInventory(), 1);
 
-      return PlaceResult.success(entities.size());
+      return PlaceResult.success(plainPaste, entities.size());
     } catch (DataStoreException e) {
       getPlugin().getLogger().log(Level.SEVERE, "Failed to save schematic entity to store", e);
       player.sendMessage("§cFailed to save schematic entity!");

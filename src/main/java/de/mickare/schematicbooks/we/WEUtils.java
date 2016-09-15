@@ -40,7 +40,6 @@ import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
-import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.transform.AffineTransform;
@@ -136,15 +135,20 @@ public class WEUtils {
     transform = transform.rotateZ(0);
     holder.setTransform(holder.getTransform().combine(transform));
   }
-  
+
   public static void placeSchematic(EditSession editSession, ClipboardHolder holder, Location to,
       boolean ignoreAirBlocks) throws MaxChangedBlocksException {
 
-    Vector toVec = new Vector(to.getBlockX(), to.getBlockY(), to.getBlockZ());    
+    Vector toVec = new Vector(to.getBlockX(), to.getBlockY(), to.getBlockZ());
     Operation operation = holder.createPaste(editSession, editSession.getWorld().getWorldData())
         .to(toVec).ignoreAirBlocks(ignoreAirBlocks).build();
     Operations.completeLegacy(operation);
   }
+
+  public static PasteOperation newPaste(EditSession editSession, ClipboardHolder holder) {
+    return new PasteOperation(holder, editSession, editSession.getWorld().getWorldData());
+  }
+
 
   private static final Optional<Class<?>> classBukkitEntity =
       ReflectUtils.getClassForName("com.sk89q.worldedit.bukkit.BukkitEntity");
@@ -217,7 +221,7 @@ public class WEUtils {
     public int getId() {
       return super.getType();
     }
-    
+
     @Override
     public int hashCode() {
       return Objects.hash(this.getType(), this.getData());
@@ -240,7 +244,6 @@ public class WEUtils {
     public BlockType getBlockType() {
       return BlockType.fromID(this.getType());
     }
-
 
   }
 

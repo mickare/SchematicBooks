@@ -23,7 +23,11 @@ public enum Permission {
 
   PICKUP(SCHEMATIC_ITEM, "pickup"),
 
-  PLACE(SCHEMATIC_ITEM, "place"),;
+  PLACE(SCHEMATIC_ITEM, "place"),
+  PLACE_PLAIN(PLACE, "plain"),
+  PLACE_PLAIN_UNMASK(PLACE_PLAIN, "unmask"),
+
+  OFFSET(SCHEMATIC_ITEM, "offset");
 
   private final String permission;
 
