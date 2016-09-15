@@ -72,6 +72,8 @@ import net.md_5.bungee.api.chat.ComponentBuilder.FormatRetention;
 
 public class Interactions {
 
+  private static @Getter @Setter boolean createBookEntityAnytime = false;
+
   // Instance
   private static @Getter @Setter(AccessLevel.PROTECTED) SchematicBooksPlugin plugin;
 
@@ -439,9 +441,10 @@ public class Interactions {
 
       Rotation destRotation = Rotation.fromYaw((int) player.getLocation().getYaw());
 
+      // Place it!
       PlaceResult place = doPlace(event, player, info, to, destRotation);
-
       if (place.isSuccess()) {
+
         if (player.getGameMode() != GameMode.CREATIVE && place.getEntitiesCount() != 0) {
           if (item.getAmount() > 1) {
             item.setAmount(item.getAmount() - 1);
@@ -450,6 +453,7 @@ public class Interactions {
             player.getInventory().setItemInMainHand(null);
           }
         }
+
       }
 
     }
@@ -561,7 +565,9 @@ public class Interactions {
 
         ParticleUtils.showParticlesForTime(getPlugin(), 20, to.getWorld(), entity, 0, 255, 0);
 
-        getPlugin().getEntityManager().getCache(to.getWorld()).add(entity);
+        if (createBookEntityAnytime || !entities.isEmpty()) {
+          getPlugin().getEntityManager().getCache(to.getWorld()).add(entity);
+        }
       } catch (Exception e) {
         editSession.undo(new EntityEditSession(world, MAX_BLOCKS));
         throw e;
