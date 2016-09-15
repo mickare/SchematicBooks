@@ -158,8 +158,6 @@ public class InfoManager implements Closeable {
 
   public void saveInfo(SchematicBookInfo info) throws IOException {
     final Path path = getInfoFileOf(info);
-
-
     try (UnsafeCloseable halt = this.watcher.halt(path); //
         BufferedWriter writer =
             Files.newBufferedWriter(path, Charsets.UTF_8, StandardOpenOption.WRITE,

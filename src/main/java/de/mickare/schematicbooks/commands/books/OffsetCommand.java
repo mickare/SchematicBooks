@@ -74,10 +74,10 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
     if (args.length == 6) {
       try {
         positiveAxis.setX(parseInt(player, "<x+>", args[0]));
-        negativeAxis.setX(parseInt(player, "<x->", args[0]));
+        negativeAxis.setX(parseInt(player, "<x->", args[1]));
 
-        positiveAxis.setY(parseInt(player, "<y+>", args[0]));
-        negativeAxis.setY(parseInt(player, "<y->", args[0]));
+        positiveAxis.setY(parseInt(player, "<y+>", args[2]));
+        negativeAxis.setY(parseInt(player, "<y->", args[3]));
 
         positiveAxis.setZ(parseInt(player, "<z+>", args[4]));
         negativeAxis.setZ(parseInt(player, "<z->", args[5]));
@@ -124,23 +124,20 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
         final SchematicEntity entity = event.getEntity();
         final SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
 
-        Rotation rotation =
-            Rotation.fromYaw(entity.getRotation().getYaw() - info.getRotation().getYaw());
-
-        final IntVectorAxis info_offset_old = info.getHitBoxOffset();
-
         final IntVectorAxis world_offset = action.getOffset();
 
+        final IntVectorAxis info_offset_old = info.getHitBoxOffset();
+        final IntRegion world_hitbox_old = entity.getHitBox().copy();
 
         IntVectorAxis info_offset_new = world_offset.rotate(info.getRotation());
         IntVectorAxis info_offset_diff = info_offset_new.subtract(info_offset_old);
+        IntVectorAxis world_offset_diff = info_offset_diff.rotate(-info.getRotation().getYaw());
 
-        final IntRegion entity_hitbox_old = entity.getHitBox().copy();
 
-        IntVectorAxis entity_offset_diff =
-            info_offset_diff.rotate(entity.getRotation().getYaw() - info.getRotation().getYaw());
+        // IntVectorAxis entity_offset_diff = info_offset_diff.rotate(-info.getRotation().getYaw());
 
-        entity_offset_diff.addTo(entity.getHitBox());
+
+        entity.setHitBox(world_offset_diff.addTo(entity.getHitBox()));
         entity.dirty();
         info.setHitBoxOffset(info_offset_new);
 
@@ -149,13 +146,14 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
         } catch (IOException e) {
           // UNDO
           info.setHitBoxOffset(info_offset_old);
-          entity.setHitBox(entity_hitbox_old);
+          entity.setHitBox(world_hitbox_old);
           getPlugin().getLogger().log(Level.SEVERE, "Failed to save schematic info", e);
           player.sendMessage("§cFailed to save schematic information!");
 
         }
 
-        player.sendMessage("§aOffset: " + info.getHitBoxOffset().toString() + "\n§aHitbox: "
+        player.sendMessage("§aNew Offset for §6" + info.getKey() + "\n §aOffset: §d"
+            + info.getHitBoxOffset().toString() + "\n §aHitbox: §d"
             + entity.getHitBox().toString());
         particles(event.getWorld(), entity);
 
