@@ -51,6 +51,7 @@ import de.mickare.schematicbooks.commands.MainSchematicItemsCommand;
 import de.mickare.schematicbooks.data.DataStoreException;
 import de.mickare.schematicbooks.data.SchematicEntity;
 import de.mickare.schematicbooks.event.EventFactory;
+import de.mickare.schematicbooks.event.PickupSchematicEvent;
 import de.mickare.schematicbooks.event.PlaceSchematicEvent;
 import de.mickare.schematicbooks.util.BukkitReflect;
 import de.mickare.schematicbooks.util.IntRegion;
@@ -341,7 +342,10 @@ public class Interactions {
   private static boolean doPickup(final Cancellable event, final Player player, final World world,
       final SchematicEntity entity) {
 
-    EventFactory.callPickupEvent(player, world, event, entity);
+    PickupSchematicEvent pickupEvent = EventFactory.callPickupEvent(player, world, event, entity);
+    if (pickupEvent.isCancelled()) {
+      return false;
+    }
 
     if (!Permission.PICKUP.checkPermission(player)) {
       Out.PERMISSION_MISSING_EXTENSION.send(player, "Schematic-Pickup");

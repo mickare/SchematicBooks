@@ -28,6 +28,7 @@ import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
 import de.mickare.schematicbooks.util.IntVectorAxis;
 import de.mickare.schematicbooks.util.ParticleUtils;
+import de.mickare.schematicbooks.util.Rotation;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -90,7 +91,7 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
     }
 
 
-    this.actions.put(player, new OffsetAction(positiveAxis, negativeAxis));
+    this.actions.put(player, new OffsetAction(new IntVectorAxis(negativeAxis, positiveAxis)));
 
     player.sendMessage("§aClick an existing entity with a book. §7(As if for Info)");
 
@@ -99,8 +100,7 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
 
   @RequiredArgsConstructor
   private static class OffsetAction {
-    private @Getter @NonNull final IntVector positiveAxis;
-    private @Getter @NonNull final IntVector negativeAxis;
+    private @Getter @NonNull final IntVectorAxis offset;
   }
 
   @EventHandler
@@ -115,37 +115,49 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
       return;
     }
     final OffsetAction action = this.actions.getIfPresent(player);
+
     if (action != null) {
       this.actions.invalidate(player);
       event.setCancelled(true);
+
       try {
-        SchematicBookInfo info = getPlugin().getInfoManager().getInfo(event.getEntity());
+        final SchematicEntity entity = event.getEntity();
+        final SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
 
-        final IntVectorAxis infoOldOffset = info.getHitBoxOffset();
-        IntVectorAxis infoNewOffset =
-            new IntVectorAxis(action.getNegativeAxis(), action.getPositiveAxis());
-        IntVectorAxis infoDiffOffset = infoNewOffset.subtract(infoOldOffset);
+        Rotation rotation =
+            Rotation.fromYaw(entity.getRotation().getYaw() - info.getRotation().getYaw());
 
-        final IntRegion entityOldHitBox = event.getEntity().getHitBox().copy();
+        final IntVectorAxis info_offset_old = info.getHitBoxOffset();
+
+        final IntVectorAxis world_offset = action.getOffset();
 
 
-        infoDiffOffset.addTo(event.getEntity().getHitBox());
-        event.getEntity().dirty();
-        info.setHitBoxOffset(infoNewOffset);
+        IntVectorAxis info_offset_new = world_offset.rotate(info.getRotation());
+        IntVectorAxis info_offset_diff = info_offset_new.subtract(info_offset_old);
+
+        final IntRegion entity_hitbox_old = entity.getHitBox().copy();
+
+        IntVectorAxis entity_offset_diff =
+            info_offset_diff.rotate(entity.getRotation().getYaw() - info.getRotation().getYaw());
+
+        entity_offset_diff.addTo(entity.getHitBox());
+        entity.dirty();
+        info.setHitBoxOffset(info_offset_new);
 
         try {
           getPlugin().getInfoManager().saveInfo(info);
         } catch (IOException e) {
-          info.setHitBoxOffset(infoOldOffset);
-          event.getEntity().setHitBox(entityOldHitBox);
+          // UNDO
+          info.setHitBoxOffset(info_offset_old);
+          entity.setHitBox(entity_hitbox_old);
           getPlugin().getLogger().log(Level.SEVERE, "Failed to save schematic info", e);
           player.sendMessage("§cFailed to save schematic information!");
 
         }
 
         player.sendMessage("§aOffset: " + info.getHitBoxOffset().toString() + "\n§aHitbox: "
-            + event.getEntity().getHitBox().toString());
-        particles(event.getWorld(), event.getEntity());
+            + entity.getHitBox().toString());
+        particles(event.getWorld(), entity);
 
       } catch (ExecutionException e) {
         getPlugin().getLogger().log(Level.SEVERE, "Failed to get schematic info", e);
