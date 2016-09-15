@@ -70,7 +70,7 @@ public class ReflectionFunction<T, R> implements UnsafeFunction<T, R> {
 
   @Override
   public R apply(T t) throws Exception {
-    return applyWithInstance(this.instance.get(), t);
+    return applyWithInstance(this.instance != null ? this.instance.get() : null, t);
   }
 
   @SuppressWarnings("unchecked")

@@ -64,7 +64,7 @@ public class ReflectionSupplier<T> implements UnsafeSupplier<T> {
 
   @Override
   public T get() throws Exception {
-    return getWithInstance(this.instance.get());
+    return getWithInstance(this.instance != null ? this.instance.get() : null);
   }
 
   @SuppressWarnings("unchecked")
