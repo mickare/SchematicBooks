@@ -68,6 +68,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.ComponentBuilder.FormatRetention;
 
 public class Interactions {
 
@@ -213,7 +214,8 @@ public class Interactions {
         cb.append("§d" + entity.getOwner());
       }
 
-      cb.append(" §7(" + DATE_FORMAT.format(new Date(entity.getTimestamp())) + ")\n");
+      cb.append(" §7(" + DATE_FORMAT.format(new Date(entity.getTimestamp())) + ")\n",
+          FormatRetention.NONE);
     }
 
     try {
@@ -226,7 +228,7 @@ public class Interactions {
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
             TextComponent.fromLegacyText("§d" + creatorUUID.toString())));
       }
-      cb.append("\n");
+      cb.append("\n", FormatRetention.NONE);
       if (info.hasPermission() && Permission.INFO_PERMISSION.checkPermission(player)) {
         cb.append("§c Permission required\n§d " + info.getPermission() + "\n");
       }

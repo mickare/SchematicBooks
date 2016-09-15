@@ -21,6 +21,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.ComponentBuilder.FormatRetention;
 
 public class ListCommand extends AbstractCommand<SchematicBooksPlugin> {
 
@@ -88,7 +89,7 @@ public class ListCommand extends AbstractCommand<SchematicBooksPlugin> {
     for (SchematicBookInfo info : sublist) {
 
       String permission = info.hasPermission() ? " §cP" : "";
-      cb.append("\n   ")
+      cb.append("\n   ", FormatRetention.NONE)
           .append("§2" + Strings.padEnd(info.getKey(), keyMaxLength, ' ') + permission);
       cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, createHover(info, hasGetPerm)));
       if (hasGetPerm) {
