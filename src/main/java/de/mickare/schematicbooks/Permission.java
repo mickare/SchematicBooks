@@ -17,6 +17,7 @@ public enum Permission {
 
   INFO(SCHEMATIC_ITEM, "info"),
   INFO_OWNER(INFO, "owner"),
+  INFO_UUID(INFO, "uuid"),
   INFO_PERMISSION(INFO, "permission"),
   INFO_GETTER(INFO, "getter"),
 

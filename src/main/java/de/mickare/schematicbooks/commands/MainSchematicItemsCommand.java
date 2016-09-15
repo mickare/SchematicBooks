@@ -9,8 +9,10 @@ import de.mickare.schematicbooks.commands.books.ShowCommand;
 
 public class MainSchematicItemsCommand extends AbstractMainMenuCommand<SchematicBooksPlugin> {
 
+  public static final String CMD = "sbook";
+
   public MainSchematicItemsCommand(SchematicBooksPlugin plugin) {
-    super(plugin, plugin.getCommand("sbook"));
+    super(plugin, plugin.getCommand(CMD));
   }
 
   @Override

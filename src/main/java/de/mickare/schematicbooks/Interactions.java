@@ -47,6 +47,7 @@ import com.sk89q.worldedit.blocks.BlockType;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.session.ClipboardHolder;
 
+import de.mickare.schematicbooks.commands.MainSchematicItemsCommand;
 import de.mickare.schematicbooks.data.DataStoreException;
 import de.mickare.schematicbooks.data.SchematicEntity;
 import de.mickare.schematicbooks.util.BukkitReflect;
@@ -66,6 +67,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 
 public class Interactions {
 
@@ -194,25 +196,46 @@ public class Interactions {
 
     ParticleUtils.showParticlesForTime(getPlugin(), 20, world, entity, 0, 0, 255);
 
-    ComponentBuilder cb = new ComponentBuilder("§7Schematic Entity Info\n");
+    ComponentBuilder cb = new ComponentBuilder("§6Schematic Entity Info\n");
     cb.append("§7 Name: §r" + entity.getName() + "\n");
     cb.append("§7 Entities: §r" + entity.getEntities().size() + "\n");
 
     if (Permission.INFO_OWNER.checkPermission(player)) {
-      cb.append("§7 Placed by: §r" + getPlugin().getPlayerName(entity.getOwner()) //
-          + " §7(" + DATE_FORMAT.format(new Date(entity.getTimestamp())) + ")\n");
+      cb.append("§7 Placed by: §r");
+      String playerName = getPlugin().getPlayerName(entity.getOwner());
+      if (playerName != null) {
+        cb.append(playerName);
+        if (Permission.INFO_UUID.checkPermission(player)) {
+          cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+              TextComponent.fromLegacyText("§d" + entity.getOwner())));
+        }
+      } else {
+        cb.append("§d" + entity.getOwner());
+      }
+
+      cb.append(" §7(" + DATE_FORMAT.format(new Date(entity.getTimestamp())) + ")\n");
     }
 
     try {
       SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
 
-      cb.append("§7 Schematic-Creator: §r" + info.getCreator() + "\n");
-      if (Permission.INFO_PERMISSION.checkPermission(player)) {
-        cb.append("§7 Schematic-Perm:    §r" + info.getPermission() + "\n");
+      cb.append("§7 Created by: §r");
+      UUID creatorUUID = getPlugin().getPlayerUUID(info.getCreator());
+      cb.append(info.getCreator());
+      if (creatorUUID != null && Permission.INFO_UUID.checkPermission(player)) {
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+            TextComponent.fromLegacyText("§d" + creatorUUID.toString())));
+      }
+      cb.append("\n");
+      if (info.hasPermission() && Permission.INFO_PERMISSION.checkPermission(player)) {
+        cb.append("§c Permission required\n§d " + info.getPermission() + "\n");
       }
       if (Permission.INFO_GETTER.checkPermission(player)) {
-        cb.append("§5Click to copy Schematic Item");
-        cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sitem get " + info.getKey()));
+        cb.append("§e>> §oClick to get schematic book§e <<");
+        cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+            "/" + MainSchematicItemsCommand.CMD + " get " + info.getKey()));
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+            TextComponent.fromLegacyText("§e>> §oClick§e <<")));
       }
 
     } catch (ExecutionException e) {

@@ -15,6 +15,7 @@ import de.mickare.schematicbooks.Permission;
 import de.mickare.schematicbooks.SchematicBookInfo;
 import de.mickare.schematicbooks.SchematicBooksPlugin;
 import de.mickare.schematicbooks.commands.AbstractCommand;
+import de.mickare.schematicbooks.commands.MainSchematicItemsCommand;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -91,7 +92,8 @@ public class ListCommand extends AbstractCommand<SchematicBooksPlugin> {
           .append("§2" + Strings.padEnd(info.getKey(), keyMaxLength, ' ') + permission);
       cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, createHover(info, hasGetPerm)));
       if (hasGetPerm) {
-        cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/sbook get " + info.getKey()));
+        cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
+            "/" + MainSchematicItemsCommand.CMD + " get " + info.getKey()));
       }
     }
 
