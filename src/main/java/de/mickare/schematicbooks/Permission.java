@@ -8,6 +8,8 @@ public enum Permission {
 
   SCHEMATIC_ITEM("schematicbooks"),
 
+  LIST(SCHEMATIC_ITEM, "list"),
+  LIST_ALL(LIST, "all"),
   RELOAD(SCHEMATIC_ITEM, "reload"),
   SAVE(SCHEMATIC_ITEM, "save"),
   GET(SCHEMATIC_ITEM, "get"),

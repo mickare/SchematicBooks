@@ -1,9 +1,10 @@
 package de.mickare.schematicbooks;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 
-import org.bukkit.entity.Player;
+import org.bukkit.permissions.Permissible;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -51,13 +52,22 @@ public class SchematicBookInfo {
     return makeKey(name);
   }
 
-  public File getSchematicFile(File schematicFolder) {
-    return new File(schematicFolder, this.getKey() + ".schematic");
+  public Path getSchematicFilePath() {
+    return getSchematicFilePath(
+        JavaPlugin.getPlugin(SchematicBooksPlugin.class).getSchematicFolder());
   }
 
-  public boolean hasPermission(Player player) {
-    if (permission != null && permission.length() > 0) {
-      return player.hasPermission(permission);
+  public Path getSchematicFilePath(Path schematicFolder) {
+    return schematicFolder.resolve(this.getKey() + ".schematic");
+  }
+
+  public boolean hasPermission() {
+    return permission != null && permission.length() > 0;
+  }
+
+  public boolean checkPermission(Permissible permissible) {
+    if (hasPermission()) {
+      return permissible.hasPermission(permission);
     }
     return true;
   }

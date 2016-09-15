@@ -343,7 +343,7 @@ public class Interactions {
       final SchematicEntity entity) {
     try {
       SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
-      if (!info.hasPermission(player)) {
+      if (!info.checkPermission(player)) {
         Out.PERMISSION_MISSING_EXTENSION.send(player, "Schematic <this schematic>");
         return Optional.empty();
       }
@@ -463,7 +463,7 @@ public class Interactions {
       return PlaceResult.FAILED;
     }
 
-    if (!info.hasPermission(player)) {
+    if (!info.checkPermission(player)) {
       Out.PERMISSION_MISSING_EXTENSION.send(player, "Schematic <this schematic>");
       return PlaceResult.FAILED;
     }
@@ -471,7 +471,7 @@ public class Interactions {
     Rotation rotation = Rotation.fromYaw(info.getRotation().getYaw() - destRotation.getYaw());
 
     try {
-      File file = info.getSchematicFile(getPlugin().getSchematicFolder());
+      File file = info.getSchematicFilePath(getPlugin().getSchematicFolder()).toFile();
       if (!file.exists() || !file.isFile()) {
         player.sendMessage("§cFailed to build! Schematic does not exist!");
         return PlaceResult.FAILED;

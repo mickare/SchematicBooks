@@ -1,6 +1,7 @@
 package de.mickare.schematicbooks;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -26,7 +27,7 @@ import de.mickare.schematicbooks.permission.PermissionCheck;
 import de.mickare.schematicbooks.permission.SimplePermissionCheck;
 import de.mickare.schematicbooks.permission.WorldGuardPermissionCheck;
 import de.mickare.schematicbooks.reflection.ReflectionFunction;
-import de.mickare.schematicbooks.reflection.ReflectionPlayerName;
+import de.mickare.schematicbooks.reflection.ReflectionPlayerInformation;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -57,7 +58,7 @@ public class SchematicBooksPlugin extends JavaPlugin {
   private @Getter PermissionCheck permcheck;
   private @Getter EntityManager entityManager;
   private @Getter InfoManager infoManager;
-  private @Getter File schematicFolder;
+  private @Getter Path schematicFolder;
 
   @Override
   public void onLoad() {
@@ -80,9 +81,9 @@ public class SchematicBooksPlugin extends JavaPlugin {
     ResourceBundle bundle = ResourceBundle.getBundle("Messages", locale);
     Out.setResource(bundle);
 
-    this.schematicFolder = new File(this.getDataFolder(), "schematic");
-    if (!this.schematicFolder.isDirectory()) {
-      this.schematicFolder.mkdirs();
+    this.schematicFolder = this.getDataFolder().toPath().resolve("schematic");
+    if (!this.schematicFolder.toFile().isDirectory()) {
+      this.schematicFolder.toFile().mkdirs();
     }
 
     setPlayerNameGetter("de.rennschnitzel.cbsuite.main.CB", "getPlayerName");
@@ -95,9 +96,12 @@ public class SchematicBooksPlugin extends JavaPlugin {
       this.permcheck = new SimplePermissionCheck();
     }
 
-    this.entityManager = new EntityManager(this);
-    this.infoManager = new InfoManager(this);
-
+    try {
+      this.entityManager = new EntityManager(this);
+      this.infoManager = new InfoManager(this);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     // Listeners
     if (getServer().getPluginManager().isPluginEnabled("ArmorTools")) {
       new ArmorToolListener(this).register();
@@ -137,7 +141,7 @@ public class SchematicBooksPlugin extends JavaPlugin {
 
   public void setPlayerNameGetter(String className, String methodName) {
     try {
-      this.setPlayerNameGetter(ReflectionPlayerName.ofStatic(className, methodName));
+      this.setPlayerNameGetter(ReflectionPlayerInformation.nameByStatic(className, methodName));
     } catch (Exception e) {
       getLogger().log(Level.WARNING,
           "Player name getter " + className + "." + methodName + "(uuid) not found!");
@@ -154,8 +158,7 @@ public class SchematicBooksPlugin extends JavaPlugin {
 
   public void setPlayerUUIDGetter(String className, String methodName) {
     try {
-      this.setPlayerUUIDGetter(
-          ReflectionFunction.ofStatic(className, methodName, UUID.class, String.class).unsafe());
+      this.setPlayerUUIDGetter(ReflectionPlayerInformation.uuidByStatic(className, methodName));
     } catch (Exception e) {
       getLogger().log(Level.WARNING,
           "Player uuid getter " + className + "." + methodName + "(string) not found!");

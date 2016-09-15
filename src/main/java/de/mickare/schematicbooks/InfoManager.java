@@ -6,14 +6,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -27,11 +30,14 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 
 import de.mickare.schematicbooks.data.SchematicEntity;
+import de.mickare.schematicbooks.util.UnsafeCloseable;
+import de.mickare.schematicbooks.util.watcher.HaltablePathWatcher;
 import lombok.Getter;
 
 public class InfoManager {
 
   private @Getter final SchematicBooksPlugin plugin;
+  private final InfoWatcher watcher;
 
   private static Gson GSON = new GsonBuilder().create();
   private LoadingCache<String, SchematicBookInfo> schematics = CacheBuilder.newBuilder()//
@@ -39,26 +45,36 @@ public class InfoManager {
 
         @Override
         public SchematicBookInfo load(String key) throws Exception {
-          return loadInfo(getInfoFileOf(key));
+          return loadInfo(getInfoFileOf(key).toFile());
         }
       });
 
-  public InfoManager(SchematicBooksPlugin plugin) {
+  public InfoManager(SchematicBooksPlugin plugin) throws IOException {
     Preconditions.checkNotNull(plugin);
     this.plugin = plugin;
 
-    File[] files = plugin.getSchematicFolder()
-        .listFiles((dir, name) -> name != null && name.endsWith(".info"));
-    Preconditions.checkState(files != null);
-
-    for (File infofile : files) {
+    getInfoFiles().forEach(path -> {
+      File infofile = path.toFile();
       try {
         SchematicBookInfo info = loadInfo(infofile);
         schematics.put(info.getKey().toLowerCase(), info);
       } catch (IOException | JsonSyntaxException | JsonIOException e) {
         logger().log(Level.WARNING, "Could not load schematic info " + infofile.getName(), e);
       }
-    }
+    });
+
+    watcher = new InfoWatcher(plugin.getSchematicFolder(), false);
+    new BukkitRunnable() {
+      @Override
+      public void run() {
+        if (watcher.isClosed() && watcher.isValid()) {
+          this.cancel();
+          return;
+        }
+        watcher.run();
+      }
+    }.runTaskTimerAsynchronously(plugin, 100, 100);
+
 
   }
 
@@ -71,19 +87,19 @@ public class InfoManager {
   }
 
 
-  public File getInfoFileOf(String key) {
-    return new File(plugin.getSchematicFolder(), key.toLowerCase() + ".info");
+  public Path getInfoFileOf(String key) {
+    return plugin.getSchematicFolder().resolve(key.toLowerCase() + ".info");
   }
 
-  public File getInfoFileOf(SchematicBookInfo info) {
+  public Path getInfoFileOf(SchematicBookInfo info) {
     return getInfoFileOf(info.getKey());
   }
 
-  public File getSchematicFileOf(String key) {
-    return new File(plugin.getSchematicFolder(), key.toLowerCase() + ".schematic");
+  public Path getSchematicFileOf(String key) {
+    return plugin.getSchematicFolder().resolve(key.toLowerCase() + ".schematic");
   }
 
-  public File getSchematicFileOf(SchematicBookInfo info) {
+  public Path getSchematicFileOf(SchematicBookInfo info) {
     return getSchematicFileOf(info.getKey());
   }
 
@@ -107,7 +123,7 @@ public class InfoManager {
     if (this.schematics.getIfPresent(key) != null) {
       return true;
     }
-    File file = getInfoFileOf(key);
+    File file = getInfoFileOf(key).toFile();
     if (file.isFile() && file.exists()) {
       return true;
     }
@@ -115,7 +131,7 @@ public class InfoManager {
   }
 
   public boolean schematicExists(String key) {
-    File file = getSchematicFileOf(key);
+    File file = getSchematicFileOf(key).toFile();
     if (file.isFile() && file.exists()) {
       return true;
     }
@@ -123,9 +139,13 @@ public class InfoManager {
   }
 
   public void saveInfo(SchematicBookInfo info) throws IOException {
-    try (BufferedWriter writer = Files.newBufferedWriter(getInfoFileOf(info).toPath(),
-        Charsets.UTF_8, StandardOpenOption.WRITE, StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING)) {
+    final Path path = getInfoFileOf(info);
+
+
+    try (UnsafeCloseable halt = this.watcher.halt(path); //
+        BufferedWriter writer =
+            Files.newBufferedWriter(path, Charsets.UTF_8, StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
       GSON.toJson(info, SchematicBookInfo.class, writer);
     }
   }
@@ -152,8 +172,55 @@ public class InfoManager {
     return Optional.empty();
   }
 
-  public Map<String, SchematicBookInfo> getInfos() {
+  public Map<String, SchematicBookInfo> getAllInfos() {
     return ImmutableMap.copyOf(this.schematics.asMap());
+  }
+
+  public Stream<Path> getInfoFiles() throws IOException {
+    return Files.find(plugin.getSchematicFolder(), 0,
+        (path, attr) -> attr.isRegularFile() && path.endsWith(".info"));
+  }
+
+  private static String getBookKeyOfPath(Path path) {
+    Preconditions.checkArgument(path.endsWith(".info"));
+    String filename = path.getFileName().toString();
+    return filename.substring(0, filename.lastIndexOf(".info"));
+  }
+
+  private class InfoWatcher extends HaltablePathWatcher {
+
+    public InfoWatcher(Path dir, boolean recursive) throws IOException {
+      super(dir, recursive);
+    }
+
+    private void refreshInfoPath(Path path) {
+      if (path.endsWith(".info")) {
+        try {
+          if (Files.size(path) > 0) {
+            InfoManager.this.schematics.refresh(getBookKeyOfPath(path));
+          }
+        } catch (IOException e) {
+        }
+      }
+    }
+
+    @Override
+    protected void onEntryCreate0(Path path) {
+      refreshInfoPath(path);
+    }
+
+    @Override
+    protected void onEntryDelete0(Path path) {
+      if (path.endsWith(".info")) {
+        InfoManager.this.schematics.invalidate(getBookKeyOfPath(path));
+      }
+    }
+
+    @Override
+    protected void onEntryModify0(Path path) {
+      refreshInfoPath(path);
+    }
+
   }
 
 }

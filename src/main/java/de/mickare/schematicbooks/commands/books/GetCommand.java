@@ -70,11 +70,11 @@ public class GetCommand extends AbstractCommand<SchematicBooksPlugin> implements
   public List<String> onTabComplete(CommandSender sender, Command command, String alias,
       String[] args) {
     if (args.length == 0) {
-      return Lists.newArrayList(getPlugin().getInfoManager().getInfos().keySet());
+      return Lists.newArrayList(getPlugin().getInfoManager().getAllInfos().keySet());
     }
     if (args.length == 1) {
       final String search = args[0].toLowerCase();
-      return getPlugin().getInfoManager().getInfos().keySet().stream()
+      return getPlugin().getInfoManager().getAllInfos().keySet().stream()
           .filter(k -> k.contains(search)).collect(Collectors.toList());
     }
     return null;
