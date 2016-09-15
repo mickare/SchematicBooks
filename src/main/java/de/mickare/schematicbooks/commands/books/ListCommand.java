@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
+import de.mickare.schematicbooks.Out;
 import de.mickare.schematicbooks.Permission;
 import de.mickare.schematicbooks.SchematicBookInfo;
 import de.mickare.schematicbooks.SchematicBooksPlugin;
@@ -35,11 +36,15 @@ public class ListCommand extends AbstractCommand<SchematicBooksPlugin> {
     int argOffset = 0;
     boolean isAll = false;
 
-    Collection<SchematicBookInfo> all = getPlugin().getInfoManager().getAllInfos().values();
-    List<SchematicBookInfo> list = Lists.newArrayListWithExpectedSize(all.size());
+    Collection<SchematicBookInfo> all = getPlugin().getInfoManager().getAllInfos();
 
-    if (args.length > argOffset && args[argOffset + 0].equalsIgnoreCase("all")
-        && Permission.LIST_ALL.checkPermission(sender)) {
+    List<SchematicBookInfo> list = Lists.newArrayList();
+
+    if (args.length > argOffset && args[argOffset + 0].equalsIgnoreCase("all")) {
+      if (!Permission.LIST_ALL.checkPermission(sender)) {
+        Out.PERMISSION_MISSING_EXTENSION.send(sender, "all");
+        return true;
+      }
       isAll = true;
       list.addAll(all);
       argOffset++;
@@ -77,18 +82,19 @@ public class ListCommand extends AbstractCommand<SchematicBooksPlugin> {
     final boolean hasGetPerm = Permission.GET.checkPermission(sender);
 
     List<SchematicBookInfo> sublist = list.subList(index_from, index_to);
-    int keyMaxLength =
-        Math.min(40, sublist.stream().mapToInt(e -> e.getKey().length()).max().orElse(1));
+    int keyMaxLength = Math.max(10,
+        Math.min(40, sublist.stream().mapToInt(e -> e.getKey().length()).max().orElse(1)));
     for (SchematicBookInfo info : sublist) {
 
       String permission = info.hasPermission() ? " §cP" : "";
-      cb.append("\n").append("§2" + Strings.padEnd(info.getKey(), keyMaxLength, ' ') + permission);
+      cb.append("\n   ")
+          .append("§2" + Strings.padEnd(info.getKey(), keyMaxLength, ' ') + permission);
       cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, createHover(info, hasGetPerm)));
       if (hasGetPerm) {
         cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/sbook get " + info.getKey()));
       }
     }
-    
+
     if (sender instanceof Player) {
       ((Player) sender).spigot().sendMessage(cb.create());
     } else {
@@ -99,13 +105,13 @@ public class ListCommand extends AbstractCommand<SchematicBooksPlugin> {
   }
 
   private static BaseComponent[] createHover(SchematicBookInfo info, boolean hasGetPerm) {
-    ComponentBuilder cb = new ComponentBuilder("§6" + info.getName());
-    cb.append("\n§7by §f" + info.getCreator());
+    ComponentBuilder cb =
+        new ComponentBuilder("§6" + info.getName() + " §7by §f" + info.getCreator());
     if (info.hasPermission()) {
       cb.append("\n\n§cPermission required\n§d" + info.getPermission());
     }
     if (hasGetPerm) {
-      cb.append("§e>> §oClick for get command§e <<");
+      cb.append("\n\n§e>> §oClick for get command§e <<");
     }
     return cb.create();
   }

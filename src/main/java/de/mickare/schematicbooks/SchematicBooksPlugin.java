@@ -1,6 +1,8 @@
 package de.mickare.schematicbooks;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -26,7 +28,6 @@ import de.mickare.schematicbooks.listener.InteractListener;
 import de.mickare.schematicbooks.permission.PermissionCheck;
 import de.mickare.schematicbooks.permission.SimplePermissionCheck;
 import de.mickare.schematicbooks.permission.WorldGuardPermissionCheck;
-import de.mickare.schematicbooks.reflection.ReflectionFunction;
 import de.mickare.schematicbooks.reflection.ReflectionPlayerInformation;
 import lombok.Getter;
 import lombok.NonNull;
@@ -82,12 +83,17 @@ public class SchematicBooksPlugin extends JavaPlugin {
     Out.setResource(bundle);
 
     this.schematicFolder = this.getDataFolder().toPath().resolve("schematic");
-    if (!this.schematicFolder.toFile().isDirectory()) {
-      this.schematicFolder.toFile().mkdirs();
+    if (!Files.isDirectory(this.schematicFolder)) {
+      try {
+        Files.createDirectories(this.schematicFolder);
+      } catch (IOException e) {
+        throw new RuntimeException("Could not create schematic folder!" + e);
+      }
     }
+    getLogger().info("Schematic Folder: " + this.schematicFolder.toString());
 
     setPlayerNameGetter("de.rennschnitzel.cbsuite.main.CB", "getPlayerName");
-    setPlayerNameGetter("de.rennschnitzel.cbsuite.main.CB", "getPlayerUUID");
+    setPlayerUUIDGetter("de.rennschnitzel.cbsuite.main.CB", "getPlayerUUID");
 
     Plugin worldguard = Bukkit.getPluginManager().getPlugin("WorldGuard");
     if (worldguard != null) {
@@ -115,14 +121,23 @@ public class SchematicBooksPlugin extends JavaPlugin {
 
     getLogger().info("SchematicItem Plugin enabled!");
 
+    doPreloadChunks(false);
+  }
 
-    // Preload loaded chunks
-    new BukkitRunnable() {
-      @Override
-      public void run() {
-        preloadLoadedChunks();
-      }
-    }.runTaskLater(this, 1);
+  private void doPreloadChunks(boolean later) {
+    if (later) {
+      // Preload loaded chunks
+      new BukkitRunnable() {
+        @Override
+        public void run() {
+          getLogger().info("Preloading for loaded chunks...");
+          preloadLoadedChunks();
+        }
+      }.runTaskLater(this, 3);
+    } else {
+      getLogger().info("Preloading for loaded chunks...");
+      preloadLoadedChunks();
+    }
   }
 
   public void preloadLoadedChunks() {

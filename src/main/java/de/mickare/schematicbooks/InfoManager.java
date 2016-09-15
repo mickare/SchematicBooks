@@ -10,11 +10,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -24,6 +26,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
@@ -45,7 +48,12 @@ public class InfoManager {
 
         @Override
         public SchematicBookInfo load(String key) throws Exception {
-          return loadInfo(getInfoFileOf(key).toFile());
+          try {
+            return loadInfo(getInfoFileOf(key).toFile());
+          } catch (Exception e) {
+            logger().log(Level.WARNING, "Could not load schematic info " + key, e);
+            throw e;
+          }
         }
       });
 
@@ -53,15 +61,7 @@ public class InfoManager {
     Preconditions.checkNotNull(plugin);
     this.plugin = plugin;
 
-    getInfoFiles().forEach(path -> {
-      File infofile = path.toFile();
-      try {
-        SchematicBookInfo info = loadInfo(infofile);
-        schematics.put(info.getKey().toLowerCase(), info);
-      } catch (IOException | JsonSyntaxException | JsonIOException e) {
-        logger().log(Level.WARNING, "Could not load schematic info " + infofile.getName(), e);
-      }
-    });
+    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> loadAllInfoFiles());
 
     watcher = new InfoWatcher(plugin.getSchematicFolder(), false);
     new BukkitRunnable() {
@@ -75,7 +75,18 @@ public class InfoManager {
       }
     }.runTaskTimerAsynchronously(plugin, 100, 100);
 
+  }
 
+  public boolean loadAllInfoFiles() {
+    try {
+      getInfoFiles().forEach(path -> {
+        schematics.refresh(getBookKeyOfPath(path));
+      });
+      return true;
+    } catch (IOException e) {
+      getPlugin().getLogger().log(Level.WARNING, "Could not load all info files!", e);
+    }
+    return false;
   }
 
   public void invalidateAll() {
@@ -172,8 +183,8 @@ public class InfoManager {
     return Optional.empty();
   }
 
-  public Map<String, SchematicBookInfo> getAllInfos() {
-    return ImmutableMap.copyOf(this.schematics.asMap());
+  public Set<SchematicBookInfo> getAllInfos() {
+    return Sets.newHashSet(this.schematics.asMap().values());
   }
 
   public Stream<Path> getInfoFiles() throws IOException {
