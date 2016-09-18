@@ -68,7 +68,6 @@ public class SchematicBooksPlugin extends JavaPlugin {
 
   @Override
   public void onDisable() {
-
     if (this.infoManager != null) {
       try {
         this.infoManager.close();
