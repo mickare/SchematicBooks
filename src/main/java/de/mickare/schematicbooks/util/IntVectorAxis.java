@@ -38,10 +38,10 @@ public class IntVectorAxis {
 
   public IntVectorAxis rotate(int yaw) {
     float myaw = (yaw % 360) + (yaw < 0 ? 360 : 0);
-    
+
     if (myaw == 0) {
       return this.copy();
-    } else if (myaw == 90) {      
+    } else if (myaw == 90) {
       IntVector rmin =
           new IntVector(-positiveAxis.getZ(), negativeAxis.getY(), negativeAxis.getX()); // 1|0
       IntVector rmax =
@@ -102,8 +102,8 @@ public class IntVectorAxis {
   }
 
   public IntVectorAxis subtract(IntVectorAxis other) {
-    IntVector negDiff = this.getNegativeAxis().subtract(other.getNegativeAxis());
-    IntVector posDiff = this.getPositiveAxis().subtract(other.getPositiveAxis());
+    IntVector negDiff = this.getNegativeAxis().copy().subtract(other.getNegativeAxis());
+    IntVector posDiff = this.getPositiveAxis().copy().subtract(other.getPositiveAxis());
     return new IntVectorAxis(negDiff, posDiff);
   }
 

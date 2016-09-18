@@ -34,10 +34,12 @@ public class SchematicChunk {
     this(cache, new ChunkPosition(x, z));
   }
 
+  @Override
   public int hashCode() {
     return position.hashCode();
   }
 
+  @Override
   public boolean equals(Object obj) {
     if (obj instanceof SchematicChunk) {
       if (obj == this) {
@@ -47,6 +49,13 @@ public class SchematicChunk {
       return position.equals(other.position) && entities.equals(other.entities);
     }
     return false;
+  }
+
+  private SchematicEntity checkEntity(final SchematicEntity e) {
+    if (e != null && !e.isValid()) {
+      this.entities.inverse().remove(e);
+    }
+    return e;
   }
 
   public boolean intersects(final SchematicEntity entity) {
@@ -61,6 +70,7 @@ public class SchematicChunk {
   }
 
   protected void addEntity(SchematicEntity entity) throws IllegalArgumentException {
+    Preconditions.checkArgument(entity.isValid());
     Preconditions.checkArgument(intersects(entity));
     entities.put(entity.getId(), entity);
   }
@@ -74,11 +84,11 @@ public class SchematicChunk {
   }
 
   public SchematicEntity getEntity(long entityId) {
-    return entities.get(entityId);
+    return checkEntity(entities.get(entityId));
   }
 
   public Optional<SchematicEntity> getEntityOf(final UUID entityId) {
-    return entities.values().stream().filter(g -> g.hasEntity(entityId)).findAny();
+    return entities.values().stream().filter(g -> g.isValid() && g.hasEntity(entityId)).findAny();
   }
 
   public boolean isEmpty() {
@@ -114,7 +124,9 @@ public class SchematicChunk {
     if (this.entities.isEmpty()) {
       return Collections.emptySet();
     }
-    return this.entities.values().stream().filter(g -> g.getHitBox().intersects(x, y, z))
+    return this.entities.values().stream()//
+        .filter(g -> checkEntity(g).isValid())//
+        .filter(g -> g.getHitBox().intersects(x, y, z))//
         .collect(Collectors.toSet());
   }
 

@@ -33,9 +33,7 @@ public class SchematicBookInfo {
   private final List<String> description;
   private final String permission;
 
-
-  // Pos1 = lower
-  // Pos2 = higher
+  // In World coordinates
   private @Getter @Setter @NonNull IntVectorAxis hitBoxOffset = new IntVectorAxis();
 
   public SchematicBookInfo(String name, String creator, //

@@ -88,7 +88,7 @@ public class WorldSchematicEntityCache {
   public void remove(SchematicEntity entity) throws DataStoreException {
 
     final AtomicBoolean removed = new AtomicBoolean(false);
-    entity.getHitBox().getChunks()
+    entity.getHitBox().getChunks(1)
         .forEach(pos -> removed.compareAndSet(false, getChunk(pos).removeEntity(entity)));
 
     if (entity.isValid() || removed.get()) {
