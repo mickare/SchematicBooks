@@ -119,7 +119,8 @@ public class SchematicBooksPlugin extends JavaPlugin {
       throw new RuntimeException(e);
     }
     // Listeners
-    if (getServer().getPluginManager().isPluginEnabled("ArmorTools")) {
+    Plugin armortools = Bukkit.getPluginManager().getPlugin("ArmorTools");
+    if (armortools != null) {
       new ArmorToolListener(this).register();
     }
     new ChunkLoaderListener(this).register();

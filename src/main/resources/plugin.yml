@@ -5,9 +5,10 @@ website: http://www.rennschnitzel.de
 authors:
 - mickare
 description: Allows players to use schematics as books.
+depends:
+- WorldEdit
 softdepend:
 - WorldGuard
-- WorldEdit
 - ArmorTools
 commands:
   sbook:
