@@ -125,8 +125,7 @@ public class SchematicChunk {
       return Collections.emptySet();
     }
     return this.entities.values().stream()//
-        .filter(g -> checkEntity(g).isValid())//
-        .filter(g -> g.getHitBox().intersects(x, y, z))//
+        .filter(g -> g.isValid() && g.getHitBox().intersects(x, y, z))//
         .collect(Collectors.toSet());
   }
 
