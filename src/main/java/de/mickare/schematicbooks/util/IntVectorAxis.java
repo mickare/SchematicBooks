@@ -37,11 +37,11 @@ public class IntVectorAxis {
   }
 
   public IntVectorAxis rotate(int yaw) {
-    float myaw = yaw % 360 + (yaw < 0 ? 360 : 0);
-
+    float myaw = (yaw % 360) + (yaw < 0 ? 360 : 0);
+    
     if (myaw == 0) {
       return this.copy();
-    } else if (myaw == 90) {
+    } else if (myaw == 90) {      
       IntVector rmin =
           new IntVector(-positiveAxis.getZ(), negativeAxis.getY(), negativeAxis.getX()); // 1|0
       IntVector rmax =
@@ -49,9 +49,9 @@ public class IntVectorAxis {
       return new IntVectorAxis(rmin, rmax);
     } else if (myaw == 180) {
       IntVector rmin =
-          new IntVector(-positiveAxis.getZ(), negativeAxis.getY(), -positiveAxis.getX()); // 1|1
+          new IntVector(-positiveAxis.getX(), negativeAxis.getY(), -positiveAxis.getZ()); // 1|1
       IntVector rmax =
-          new IntVector(-negativeAxis.getZ(), positiveAxis.getY(), -negativeAxis.getX()); // 0|0
+          new IntVector(-negativeAxis.getX(), positiveAxis.getY(), -negativeAxis.getZ()); // 0|0
       return new IntVectorAxis(rmin, rmax);
     } else if (myaw == 270) {
       IntVector rmin =

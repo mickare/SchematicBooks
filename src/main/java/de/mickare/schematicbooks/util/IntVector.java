@@ -111,4 +111,19 @@ public class IntVector {
     return "(" + x + "," + y + "," + z + ")";
   }
 
+  @Override
+  public int hashCode() {
+    return x * 31 * 31 + z * 31 + y;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof IntVector) {
+      IntVector other = (IntVector) obj;
+      return other.getX() == this.x && other.getY() == this.y && other.getZ() == this.z;
+    }
+    return false;
+  }
+
+
 }

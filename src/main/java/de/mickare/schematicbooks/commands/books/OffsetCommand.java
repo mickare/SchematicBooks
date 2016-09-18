@@ -28,7 +28,6 @@ import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
 import de.mickare.schematicbooks.util.IntVectorAxis;
 import de.mickare.schematicbooks.util.ParticleUtils;
-import de.mickare.schematicbooks.util.Rotation;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -124,6 +123,11 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
         final SchematicEntity entity = event.getEntity();
         final SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
 
+        /*
+         * Rotation rotation = Rotation.fromYaw(info.getRotation().getYaw() -
+         * entity.getRotation().getYaw());
+         */
+
         final IntVectorAxis world_offset = action.getOffset();
 
         final IntVectorAxis info_offset_old = info.getHitBoxOffset();
@@ -132,7 +136,6 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
         IntVectorAxis info_offset_new = world_offset.rotate(info.getRotation());
         IntVectorAxis info_offset_diff = info_offset_new.subtract(info_offset_old);
         IntVectorAxis world_offset_diff = info_offset_diff.rotate(-info.getRotation().getYaw());
-
 
         // IntVectorAxis entity_offset_diff = info_offset_diff.rotate(-info.getRotation().getYaw());
 

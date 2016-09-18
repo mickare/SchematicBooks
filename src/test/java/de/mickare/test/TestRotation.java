@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import de.mickare.schematicbooks.util.IntVector;
+import de.mickare.schematicbooks.util.IntVectorAxis;
 import de.mickare.schematicbooks.util.Rotation;
 
 public class TestRotation {
@@ -36,6 +38,40 @@ public class TestRotation {
     assertEquals(Rotation.WEST, Rotation.fromYaw(90 + 360));
     assertEquals(Rotation.WEST, Rotation.fromYaw(90 - 360));
 
+  }
+
+  @Test
+  public void testRotationVectorAxis() {
+
+    IntVectorAxis axis = new IntVectorAxis(new IntVector(1, 1, 2), new IntVector(3, 1, 4));
+    IntVectorAxis result;
+
+    result = axis.rotate(90);
+    assertEquals(new IntVector(-4, 1, 1), result.getNegativeAxis());
+    assertEquals( new IntVector(-2, 1, 3), result.getPositiveAxis());
+
+    result = axis.rotate(90 - 360);
+    assertEquals(new IntVector(-4, 1, 1), result.getNegativeAxis());
+    assertEquals( new IntVector(-2, 1, 3), result.getPositiveAxis());
+    
+    
+    result = axis.rotate(180);
+    assertEquals(new IntVector(-3, 1, -4), result.getNegativeAxis());
+    assertEquals(new IntVector(-1, 1, -2), result.getPositiveAxis());
+   
+    result = axis.rotate(180 - 360);
+    assertEquals(new IntVector(-3, 1, -4), result.getNegativeAxis());
+    assertEquals(new IntVector(-1, 1, -2), result.getPositiveAxis());
+    
+    
+    result = axis.rotate(270);
+    assertEquals(new IntVector(2, 1, -3), result.getNegativeAxis());    
+    assertEquals(new IntVector(4, 1, -1), result.getPositiveAxis());
+
+    result = axis.rotate(270 - 360);
+    assertEquals(new IntVector(2, 1, -3), result.getNegativeAxis());
+    assertEquals(new IntVector(4, 1, -1), result.getPositiveAxis());
+    
   }
 
 }

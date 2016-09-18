@@ -22,7 +22,7 @@ public class SchematicEntity {
 
   private transient @Getter boolean valid = true;
   private transient @Getter boolean dirty = false;
-
+  
   private Long id = null;
 
   private @Getter String name;
