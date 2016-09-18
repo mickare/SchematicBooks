@@ -82,7 +82,7 @@ public class Interactions {
   private static @Getter @Setter(AccessLevel.PROTECTED) SchematicBooksPlugin plugin;
 
   // Variables
-  private static final int MAX_BLOCKS = 1000;
+  public static final int MAX_BLOCKS = 1000;
   private static final long DEFAULT_TIMEOUT = 500;
   private static final int DEFAULT_SIGHT_DISTANCE = 5;
 

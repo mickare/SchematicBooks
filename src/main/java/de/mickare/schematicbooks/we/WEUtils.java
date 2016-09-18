@@ -32,7 +32,6 @@ import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BlockType;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
@@ -45,6 +44,7 @@ import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.transform.AffineTransform;
 import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.registry.WorldData;
 
 import de.mickare.schematicbooks.reflection.ReflectUtils;
@@ -111,7 +111,7 @@ public class WEUtils {
     }
   }
 
-  public static ClipboardHolder readSchematic(BukkitWorld world, InputStream in)
+  public static ClipboardHolder readSchematic(World world, InputStream in)
       throws IOException {
     ClipboardReader reader = ClipboardFormat.SCHEMATIC.getReader(in);
     WorldData worldData = world.getWorldData();
@@ -119,7 +119,7 @@ public class WEUtils {
     return new ClipboardHolder(clipboard, worldData);
   }
 
-  public static ClipboardHolder readSchematic(BukkitWorld world, File file)
+  public static ClipboardHolder readSchematic(World world, File file)
       throws FileNotFoundException, IOException {
     try (FileInputStream fis = new FileInputStream(file); //
         BufferedInputStream bis = new BufferedInputStream(fis)) {
