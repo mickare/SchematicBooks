@@ -74,13 +74,13 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
     if (args.length == 6) {
       try {
         positiveAxis.setX(parseInt(player, "<x+>", args[0]));
-        negativeAxis.setX(parseInt(player, "<x->", args[1]));
+        negativeAxis.setX(-parseInt(player, "<x->", args[1]));
 
         positiveAxis.setY(parseInt(player, "<y+>", args[2]));
-        negativeAxis.setY(parseInt(player, "<y->", args[3]));
+        negativeAxis.setY(-parseInt(player, "<y->", args[3]));
 
         positiveAxis.setZ(parseInt(player, "<z+>", args[4]));
-        negativeAxis.setZ(parseInt(player, "<z->", args[5]));
+        negativeAxis.setZ(-parseInt(player, "<z->", args[5]));
       } catch (NumberFormatException nfe) {
         return true;
       }
