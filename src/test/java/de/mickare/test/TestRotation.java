@@ -74,4 +74,24 @@ public class TestRotation {
     
   }
 
+
+  @Test
+  public void testRotationVectorAxis2() {
+
+    IntVectorAxis axis = new IntVectorAxis(new IntVector(1, 0, 0), new IntVector(0, 0, 0));
+    IntVectorAxis result;
+
+    result = axis.rotate(90);
+    assertEquals(new IntVector(0, 0, 1), result.getNegativeAxis());
+    assertEquals( new IntVector(0, 0, 0), result.getPositiveAxis());
+
+    result = axis.rotate(180);
+    assertEquals(new IntVector(0, 0, 0), result.getNegativeAxis());
+    assertEquals( new IntVector(-1, 0, 0), result.getPositiveAxis());
+
+    result = axis.rotate(270);
+    assertEquals(new IntVector(0, 0, 0), result.getNegativeAxis());
+    assertEquals( new IntVector(0, 0, -1), result.getPositiveAxis());
+  }
+  
 }

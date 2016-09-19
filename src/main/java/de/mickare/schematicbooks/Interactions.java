@@ -528,7 +528,7 @@ public class Interactions {
     }
     info = placeEvent.getInfo();
     to = placeEvent.getTo();
-    destRotation = placeEvent.getRotation();
+    destRotation = placeEvent.getDestinationRotation();
 
 
     event.setCancelled(true);
@@ -543,6 +543,7 @@ public class Interactions {
       return PlaceResult.FAILED;
     }
 
+    // Negative rotation, because we rotate in the other look direction as the player!
     Rotation rotation = Rotation.fromYaw(info.getRotation().getYaw() - destRotation.getYaw());
 
     try {
@@ -567,7 +568,7 @@ public class Interactions {
       boxmin.subtract(origin).add(IntVector.from(to));
       boxmax.subtract(origin).add(IntVector.from(to));
 
-      IntRegion box = info.getHitBoxOffset().rotate(rotation).addTo(new IntRegion(boxmin, boxmax));
+      IntRegion box = info.getHitBoxOffset().rotate(-rotation.getYaw()).addTo(new IntRegion(boxmin, boxmax));
 
       if (!getPlugin().getPermcheck().canBuild(player, to.getWorld(), box)) {
         player.sendMessage("§cYou can not build here!");

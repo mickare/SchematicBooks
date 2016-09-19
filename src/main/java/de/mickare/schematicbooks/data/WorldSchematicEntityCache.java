@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
@@ -86,17 +85,11 @@ public class WorldSchematicEntityCache {
   }
 
   public void remove(SchematicEntity entity) throws DataStoreException {
-
-    final AtomicBoolean removed = new AtomicBoolean(false);
-    entity.getHitBox().getChunks(1)
-        .forEach(pos -> removed.compareAndSet(false, getChunk(pos).removeEntity(entity)));
-
-    if (entity.isValid() || removed.get()) {
-      entity.invalidate();
-      if (entity.hasId()) {
-        store.remove(Collections.singletonList(entity.getId()));
-      }
+    this.chunks.asMap().values().forEach(chunk -> chunk.removeEntity(entity));
+    entity.invalidate();
+    if (entity.hasId()) {
       entities_cache.invalidate(entity.getId());
+      store.remove(Collections.singletonList(entity.getId()));
     }
   }
 

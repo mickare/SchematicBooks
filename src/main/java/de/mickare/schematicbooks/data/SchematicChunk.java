@@ -80,7 +80,7 @@ public class SchematicChunk {
   }
 
   protected boolean removeEntity(SchematicEntity entity) {
-    return entities.remove(entity.getId(), entity);
+    return entities.inverse().remove(entity) != null;
   }
 
   public SchematicEntity getEntity(long entityId) {

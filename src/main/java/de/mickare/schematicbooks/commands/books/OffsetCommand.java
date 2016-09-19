@@ -29,7 +29,6 @@ import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
 import de.mickare.schematicbooks.util.IntVectorAxis;
 import de.mickare.schematicbooks.util.ParticleUtils;
-import de.mickare.schematicbooks.util.Rotation;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -109,14 +108,13 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
     this.actions.invalidate(event.getPlayer());
   }
 
-  private IntVectorAxis setOffset(SchematicBookInfo info, final OffsetAction action)
+  private IntVectorAxis setOffset(SchematicBookInfo info, final IntVectorAxis offset)
       throws IOException {
-    final IntVectorAxis world_offset_new = action.getOffset();
     final IntVectorAxis world_offset_old = info.getHitBoxOffset(); // in world coordinates
 
-    IntVectorAxis info_offset_diff = world_offset_new.subtract(world_offset_old);
+    IntVectorAxis info_offset_diff = offset.subtract(world_offset_old);
 
-    info.setHitBoxOffset(world_offset_new);
+    info.setHitBoxOffset(offset);
     try {
       getPlugin().getInfoManager().saveInfo(info);
     } catch (Exception e) {
@@ -135,8 +133,11 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
       final int rotation = info.getRotation().getYaw() - entity.getRotation().getYaw();
       final IntRegion world_hitbox_old = entity.getHitBox().copy();
       try {
-        IntVectorAxis world_offset_diff = setOffset(info, action);
-        entity.setHitBox(world_offset_diff.rotate(rotation).addTo(entity.getHitBox()));
+
+        final IntVectorAxis offset = action.getOffset();
+        IntVectorAxis world_offset_diff = setOffset(info, offset.rotate(rotation));
+
+        entity.setHitBox(world_offset_diff.rotate(-rotation).addTo(entity.getHitBox()));
         entity.dirty();
       } catch (IOException e) {
         // UNDO
@@ -187,8 +188,20 @@ public class OffsetCommand extends AbstractCommand<SchematicBooksPlugin> impleme
         player.closeInventory();
       }, 1);
 
+
+      final SchematicBookInfo info = event.getInfo();
+      final IntVectorAxis world_offset = action.getOffset();
+
+
+      // Negative rotation, because we rotate in the other look direction as the player!
+      int rotation = info.getRotation().getYaw() - event.getDestinationRotation().getYaw();
+
       try {
-        setOffset(event.getInfo(), action);
+        setOffset(info, world_offset.rotate(rotation));
+
+        player.sendMessage("§aNew Offset for §6" + info.getKey() + "\n §aOffset: §d"
+            + info.getHitBoxOffset().toString());
+
       } catch (IOException e) {
         getPlugin().getLogger().log(Level.SEVERE, "Failed to save schematic info", e);
         player.sendMessage("§cFailed to save schematic information!");

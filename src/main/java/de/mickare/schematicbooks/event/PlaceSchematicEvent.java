@@ -19,14 +19,14 @@ public class PlaceSchematicEvent extends PlayerSchematicEvent implements Cancell
 
   private @Getter Location to;
   private @Getter @Setter @NonNull SchematicBookInfo info;
-  private @Getter @Setter @NonNull Rotation rotation;
+  private @Getter @Setter @NonNull Rotation destinationRotation;
 
   public PlaceSchematicEvent(Player player, Location to, Cancellable origin, SchematicBookInfo info,
       Rotation rotation) {
     super(player, to.getWorld(), origin);
     this.to = to;
     this.info = info;
-    this.rotation = rotation;
+    this.destinationRotation = rotation;
   }
 
   public void setTo(Location to) {
