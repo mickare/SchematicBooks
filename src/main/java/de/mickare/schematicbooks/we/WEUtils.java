@@ -21,17 +21,22 @@ import java.util.logging.Level;
 import org.apache.commons.lang.reflect.FieldUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.IncompleteRegionException;
+import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BlockType;
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
@@ -43,15 +48,37 @@ import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.transform.AffineTransform;
 import com.sk89q.worldedit.math.transform.Transform;
+import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.registry.WorldData;
 
 import de.mickare.schematicbooks.reflection.ReflectUtils;
+import de.mickare.schematicbooks.util.IntRegion;
+import de.mickare.schematicbooks.util.IntVector;
 
 public class WEUtils {
 
   private WEUtils() {}
+
+  public static Optional<IntRegion> getCuboidSelection(Player player,
+      org.bukkit.World bukkitWorld) {
+    WorldEditPlugin we = JavaPlugin.getPlugin(WorldEditPlugin.class);
+    LocalSession session = we.getSession(player);
+    if (session != null) {
+      World world = session.getSelectionWorld();
+      try {
+        if (world != null && world.getName().equals(bukkitWorld.getName())) {
+          Region selection = session.getSelection(world);
+
+          return Optional.of(new IntRegion(IntVector.from(selection.getMinimumPoint()),
+              IntVector.from(selection.getMaximumPoint())));
+        }
+      } catch (IncompleteRegionException e) {
+      }
+    }
+    return Optional.empty();
+  }
 
   public static Clipboard bakeClipboardTransform(ClipboardHolder holder)
       throws MaxChangedBlocksException {
@@ -111,8 +138,7 @@ public class WEUtils {
     }
   }
 
-  public static ClipboardHolder readSchematic(World world, InputStream in)
-      throws IOException {
+  public static ClipboardHolder readSchematic(World world, InputStream in) throws IOException {
     ClipboardReader reader = ClipboardFormat.SCHEMATIC.getReader(in);
     WorldData worldData = world.getWorldData();
     Clipboard clipboard = reader.read(worldData);

@@ -66,6 +66,16 @@ public class IntRegion {
         && min.getZ() <= z && z <= max.getZ();
   }
 
+  public boolean intersects(IntRegion region) {
+    return region.getMinPoint().compareValues(this.getMaxPoint(), (x, y) -> x <= y)//
+        && region.getMaxPoint().compareValues(this.getMinPoint(), (x, y) -> x >= y);
+  }
+
+  public boolean contains(IntRegion region) {
+    return region.getMinPoint().compareValues(this.getMinPoint(), (x, y) -> x >= y)//
+        && region.getMaxPoint().compareValues(this.getMaxPoint(), (x, y) -> x <= y);
+  }
+
   public IntVector size() {
     return pos1.copy().subtract(pos2).add(1, 1, 1);
   }
@@ -75,10 +85,8 @@ public class IntRegion {
     final IntVector max = getMaxPoint();
 
     Set<ChunkPosition> positions = Sets.newHashSet();
-    int chunkX = min.getChunkX();
-    int chunkZ = min.getChunkZ();
-    for (; chunkX <= max.getChunkX(); ++chunkX) {
-      for (; chunkZ <= max.getChunkZ(); ++chunkZ) {
+    for (int chunkX = min.getChunkX(); chunkX <= max.getChunkX(); ++chunkX) {
+      for (int chunkZ = min.getChunkZ(); chunkZ <= max.getChunkZ(); ++chunkZ) {
         positions.add(ChunkPosition.of(chunkX, chunkZ));
       }
     }
@@ -172,5 +180,6 @@ public class IntRegion {
 
     return this;
   }
+
 
 }

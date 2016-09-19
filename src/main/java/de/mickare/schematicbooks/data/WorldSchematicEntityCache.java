@@ -1,11 +1,15 @@
 package de.mickare.schematicbooks.data;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -22,6 +26,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 import de.mickare.schematicbooks.SchematicBooksPlugin;
+import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.UnsafeBiFunction;
 import lombok.Getter;
 
@@ -155,6 +160,22 @@ public class WorldSchematicEntityCache {
     return getChunk(block.getChunk()).getEntitiesAt(block.getX(), block.getY(), block.getZ());
   }
 
+  private Set<SchematicEntity> getChunkFilter(Collection<ChunkPosition> chunks,
+      Predicate<SchematicEntity> filter) {
+    return chunks.stream().map(this::getChunk)//
+        .flatMap(chunk -> chunk.getEntities().values().stream())//
+        .filter(e -> e.isValid())//
+        .filter(filter)//
+        .collect(Collectors.toSet());
+  }
+
+  public Set<SchematicEntity> getEntitiesContaining(IntRegion region) {
+    return getChunkFilter(region.getChunks(), e -> e.getHitBox().contains(region));
+  }
+
+  public Set<SchematicEntity> getEntitiesIntesecting(IntRegion region) {
+    return getChunkFilter(region.getChunks(), e -> e.getHitBox().intersects(region));
+  }
 
   public SchematicEntity getEntity(long id) throws DataStoreException {
     SchematicEntity entity = this.entities_cache.getIfPresent(id);

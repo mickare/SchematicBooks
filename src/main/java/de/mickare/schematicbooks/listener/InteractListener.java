@@ -2,6 +2,7 @@ package de.mickare.schematicbooks.listener;
 
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -52,8 +53,25 @@ public class InteractListener extends AbstractListener {
 
   @EventHandler(priority = EventPriority.HIGH)
   public void onDamage(final EntityDamageEvent event) {
-    getPlugin().getEntityManager().getEntityOf(event.getEntity())
-        .ifPresent(g -> event.setCancelled(true));
+    if (event.getEntity() instanceof LivingEntity) {
+      LivingEntity entity = (LivingEntity) event.getEntity();
+      if (entity.isInvulnerable()) {
+        switch (event.getCause()) {
+          case CONTACT:
+          case SUFFOCATION:
+          case FIRE:
+          case FIRE_TICK:
+          case LAVA:
+          case DROWNING:
+          case HOT_FLOOR:
+            return;
+          default:
+        }
+      }
+    }
+    getPlugin().getEntityManager().getEntityOf(event.getEntity()).ifPresent(g -> {
+      event.setCancelled(true);
+    });
   }
 
   @EventHandler(priority = EventPriority.LOW)

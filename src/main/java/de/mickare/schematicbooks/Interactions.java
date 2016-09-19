@@ -369,7 +369,7 @@ public class Interactions {
           }
         } else {
           ItemStack book = SchematicBook.createItem(info);
-          if (player.getInventory().contains(book)) {
+          if (!player.getInventory().contains(book)) {
             player.getInventory().addItem(book);
           }
         }
@@ -382,7 +382,7 @@ public class Interactions {
     return false;
   }
 
-  private static Optional<SchematicBookInfo> removeEntity(final Player player, final World world,
+  public static Optional<SchematicBookInfo> removeEntity(final Player player, final World world,
       final SchematicEntity entity) {
     try {
       SchematicBookInfo info = getPlugin().getInfoManager().getInfo(entity);
@@ -568,7 +568,8 @@ public class Interactions {
       boxmin.subtract(origin).add(IntVector.from(to));
       boxmax.subtract(origin).add(IntVector.from(to));
 
-      IntRegion box = info.getHitBoxOffset().rotate(-rotation.getYaw()).addTo(new IntRegion(boxmin, boxmax));
+      IntRegion box =
+          info.getHitBoxOffset().rotate(-rotation.getYaw()).addTo(new IntRegion(boxmin, boxmax));
 
       if (!getPlugin().getPermcheck().canBuild(player, to.getWorld(), box)) {
         player.sendMessage("§cYou can not build here!");
@@ -606,6 +607,12 @@ public class Interactions {
 
       WEUtils.placeSchematic(editSession, holder, to, true);
       Set<UUID> entities = editSession.getCreatedEntityUUIDs();
+
+      if (entities.size() > 0) {
+        List<LivingEntity> entitiesObjects = to.getWorld().getLivingEntities().stream()
+            .filter(e -> entities.contains(e.getUniqueId())).collect(Collectors.toList());
+        entitiesObjects.forEach(e -> e.setInvulnerable(true));
+      }
 
       final boolean plainPaste =
           entities.isEmpty() ? Permission.PLACE_PLAIN.checkPermission(player) : false;

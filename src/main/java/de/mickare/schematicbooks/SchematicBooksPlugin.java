@@ -25,6 +25,7 @@ import de.mickare.schematicbooks.data.WorldSchematicEntityStore;
 import de.mickare.schematicbooks.listener.ArmorToolListener;
 import de.mickare.schematicbooks.listener.ChunkLoaderListener;
 import de.mickare.schematicbooks.listener.InteractListener;
+import de.mickare.schematicbooks.listener.WorldEditListener;
 import de.mickare.schematicbooks.permission.PermissionCheck;
 import de.mickare.schematicbooks.permission.SimplePermissionCheck;
 import de.mickare.schematicbooks.permission.WorldGuardPermissionCheck;
@@ -124,6 +125,7 @@ public class SchematicBooksPlugin extends JavaPlugin {
     }
     new ChunkLoaderListener(this).register();
     new InteractListener(this).register();
+    new WorldEditListener(this).register();
 
 
     // Commands

@@ -1,5 +1,7 @@
 package de.mickare.schematicbooks.util;
 
+import java.util.function.BiPredicate;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
@@ -27,6 +29,12 @@ public class IntVector {
 
   public IntVector() {
     this(0, 0, 0);
+  }
+
+  public boolean compareValues(IntVector other, BiPredicate<Integer, Integer> comparer) {
+    return comparer.test(x, other.getX())//
+        && comparer.test(y, other.getY())//
+        && comparer.test(z, other.getZ());
   }
 
   public Vector toVector() {
