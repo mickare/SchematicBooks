@@ -37,7 +37,7 @@ import lombok.Setter;
 public class SchematicBooksPlugin extends JavaPlugin {
 
   // Normal Entities that are part of Schematic Entities.
-  private static final int ENTITY_LIMIT_PER_CHUNK = 500;
+  private static final int ENTITY_LIMIT_PER_CHUNK = 510;
 
   @Getter
   @Setter
