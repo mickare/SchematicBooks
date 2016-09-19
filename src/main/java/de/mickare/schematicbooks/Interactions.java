@@ -1,6 +1,7 @@
 package de.mickare.schematicbooks;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -392,6 +393,7 @@ public class Interactions {
       }
     } catch (ExecutionException e) {
     }
+
     try {
 
       entity.getEntityObjects(world).forEach(Entity::remove);
@@ -406,12 +408,28 @@ public class Interactions {
       ParticleUtils.showParticles(world, entity, 0, 0, 255);
 
       return Optional.of(getPlugin().getInfoManager().getInfo(entity));
+
+
     } catch (DataStoreException e) {
+
       getPlugin().getLogger().log(Level.SEVERE, "Failed to remove schematic entity from store", e);
       player.sendMessage("§cFailed to remove schematic entity!");
+
+
     } catch (ExecutionException e) {
-      getPlugin().getLogger().log(Level.SEVERE, "Failed to get schematic info", e);
+
       player.sendMessage("§cFailed to load schematic information! Was it removed?");
+      if (e.getCause() != null) {
+        if (e.getCause() instanceof FileNotFoundException) {
+          getPlugin().getLogger().log(Level.WARNING,
+              "Failed to get schematic info: " + e.getCause().getMessage());
+        } else {
+          getPlugin().getLogger().log(Level.SEVERE, "Failed to get schematic info", e.getCause());
+        }
+      } else {
+        getPlugin().getLogger().log(Level.SEVERE, "Failed to get schematic info", e);
+      }
+
     }
     return Optional.empty();
   }
