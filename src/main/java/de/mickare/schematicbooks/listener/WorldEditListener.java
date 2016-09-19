@@ -15,9 +15,11 @@ public class WorldEditListener extends AbstractListener {
 
   @EventHandler
   public void onSetCommand(PlayerCommandPreprocessEvent event) {
-    String msg = event.getMessage().toLowerCase();
-    if (msg.startsWith("//set ")) {
-      CleanCommand.cleanSelection(event.getPlayer(), false, false);
+    if (event.getPlayer().hasPermission("worldedit.region.set")) {
+      String msg = event.getMessage().toLowerCase();
+      if (msg.startsWith("//set ")) {
+        CleanCommand.cleanSelection(event.getPlayer(), false, false);
+      }
     }
   }
 
