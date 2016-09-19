@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -548,6 +549,7 @@ public class Interactions {
     to = placeEvent.getTo();
     destRotation = placeEvent.getDestinationRotation();
 
+    final World bukkitWorld = to.getWorld();
 
     event.setCancelled(true);
 
@@ -571,7 +573,7 @@ public class Interactions {
         return PlaceResult.FAILED;
       }
 
-      BukkitWorld world = new BukkitWorld(to.getWorld());
+      BukkitWorld world = new BukkitWorld(bukkitWorld);
       EntityEditSession editSession = new EntityEditSession(world, MAX_BLOCKS);
       editSession.setMask(new ExcludeBlockMask(world, EXCLUDED_BLOCKS));
 
@@ -589,10 +591,12 @@ public class Interactions {
       IntRegion box =
           info.getHitBoxOffset().rotate(-rotation.getYaw()).addTo(new IntRegion(boxmin, boxmax));
 
-      if (!getPlugin().getPermcheck().canBuild(player, to.getWorld(), box)) {
+      if (!getPlugin().getPermcheck().canBuild(player, bukkitWorld, box)) {
         player.sendMessage("§cYou can not build here!");
         return PlaceResult.FAILED;
       }
+
+
 
       if (player.getGameMode() != GameMode.CREATIVE) {
         Map<EnhancedBaseItem, Integer> materials = WEUtils.getBlockTypeCount(holder.getClipboard());
@@ -616,24 +620,37 @@ public class Interactions {
         }
       }
 
+      final boolean plainPaste = holder.getClipboard().getEntities().isEmpty()
+          ? Permission.PLACE_PLAIN.checkPermission(player) : false;
+
+
+
+      OptionalInt maxiumumEntities = box.getChunks().stream()//
+          .map(cpos -> bukkitWorld.getChunkAt(cpos.getX(), cpos.getZ()))//
+          .mapToInt(chunk -> chunk.getEntities().length)//
+          .max();
+      if (maxiumumEntities.orElse(0) + holder.getClipboard().getEntities().size() > getPlugin()
+          .getEntityLimitPerChunk(player)) {
+        player.sendMessage("§cEntity limit!");
+        return PlaceResult.FAILED;
+      }
+
+
       PasteOperation paste = WEUtils.newPaste(editSession, holder)//
           .ignoreAirBlocks(true).location(to);
-      if (!Permission.PLACE_PLAIN_UNMASK.checkPermission(player)) {
-        paste.addSourceMask(b -> new ExcludeBlockMask(b.clipboard()));
+      if (!plainPaste || !Permission.PLACE_PLAIN_UNMASK.checkPermission(player)) {
+        paste.addSourceMask(b -> new ExcludeBlockMask(b.clipboard(), PLAIN_MASK));
       }
       paste.buildAndPaste();
 
-      WEUtils.placeSchematic(editSession, holder, to, true);
       Set<UUID> entities = editSession.getCreatedEntityUUIDs();
 
       if (entities.size() > 0) {
-        List<LivingEntity> entitiesObjects = to.getWorld().getLivingEntities().stream()
+        List<LivingEntity> entitiesObjects = bukkitWorld.getLivingEntities().stream()
             .filter(e -> entities.contains(e.getUniqueId())).collect(Collectors.toList());
         entitiesObjects.forEach(e -> e.setInvulnerable(true));
       }
 
-      final boolean plainPaste =
-          entities.isEmpty() ? Permission.PLACE_PLAIN.checkPermission(player) : false;
 
       /*
        * editSession.getCreatedEntities().stream()// .map(e -> WEUtils.getUUID(e))//
@@ -644,10 +661,10 @@ public class Interactions {
         SchematicEntity entity = new SchematicEntity(info.getName(), destRotation,
             box.getMinPoint(), box.getMaxPoint(), entities, player.getUniqueId());
 
-        ParticleUtils.showParticlesForTime(getPlugin(), 20, to.getWorld(), entity, 0, 255, 0);
+        ParticleUtils.showParticlesForTime(getPlugin(), 20, bukkitWorld, entity, 0, 255, 0);
 
         if (createBookEntityAnytime || !plainPaste) {
-          getPlugin().getEntityManager().getCache(to.getWorld()).add(entity);
+          getPlugin().getEntityManager().getCache(bukkitWorld).add(entity);
         }
       } catch (Exception e) {
         editSession.undo(new EntityEditSession(world, MAX_BLOCKS));

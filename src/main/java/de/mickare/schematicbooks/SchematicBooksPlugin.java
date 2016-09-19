@@ -36,6 +36,9 @@ import lombok.Setter;
 
 public class SchematicBooksPlugin extends JavaPlugin {
 
+  // Normal Entities that are part of Schematic Entities.
+  private static final int ENTITY_LIMIT_PER_CHUNK = 500;
+
   @Getter
   @Setter
   private @NonNull Function<UUID, String> playerNameGetter = (uuid) -> {
@@ -134,6 +137,10 @@ public class SchematicBooksPlugin extends JavaPlugin {
     getLogger().info("SchematicItem Plugin enabled!");
 
     doPreload(false);
+  }
+
+  public int getEntityLimitPerChunk(Player player) {
+    return ENTITY_LIMIT_PER_CHUNK;
   }
 
   private void doPreload(boolean later) {
