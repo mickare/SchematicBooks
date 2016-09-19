@@ -9,7 +9,6 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -170,11 +169,11 @@ public class WorldSchematicEntityCache {
   }
 
   public Set<SchematicEntity> getEntitiesContaining(IntRegion region) {
-    return getChunkFilter(region.getChunks(), e -> e.getHitBox().contains(region));
+    return getChunkFilter(region.getChunks(), e -> region.contains(e.getHitBox()));
   }
 
   public Set<SchematicEntity> getEntitiesIntesecting(IntRegion region) {
-    return getChunkFilter(region.getChunks(), e -> e.getHitBox().intersects(region));
+    return getChunkFilter(region.getChunks(), e -> region.intersects(e.getHitBox()));
   }
 
   public SchematicEntity getEntity(long id) throws DataStoreException {
