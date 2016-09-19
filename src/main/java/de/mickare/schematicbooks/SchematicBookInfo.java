@@ -52,6 +52,7 @@ public class SchematicBookInfo {
     return makeKey(name);
   }
 
+  /*
   public Path getSchematicFilePath() {
     return getSchematicFilePath(
         JavaPlugin.getPlugin(SchematicBooksPlugin.class).getSchematicFolder());
@@ -60,6 +61,7 @@ public class SchematicBookInfo {
   public Path getSchematicFilePath(Path schematicFolder) {
     return schematicFolder.resolve(this.getKey() + ".schematic");
   }
+  */
 
   public boolean hasPermission() {
     return permission != null && permission.length() > 0;

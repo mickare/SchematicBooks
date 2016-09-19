@@ -31,7 +31,7 @@ public class InteractionsUtils {
   public static ClipboardHolder loadRotatedClipboard(EntityEditSession editSession,
       Rotation rotation, SchematicBookInfo info, Player player)
       throws FileNotFoundException, MaxChangedBlocksException, IOException {
-    File file = info.getSchematicFilePath(Interactions.getPlugin().getSchematicFolder()).toFile();
+    File file = Interactions.getPlugin().getInfoManager().getSchematicFileOf(info).toFile();
     if (!file.exists() || !file.isFile()) {
       player.sendMessage("§cFailed to build! Schematic does not exist!");
       return null;

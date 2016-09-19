@@ -2,6 +2,7 @@ package de.mickare.schematicbooks.commands;
 
 import de.mickare.schematicbooks.SchematicBooksPlugin;
 import de.mickare.schematicbooks.commands.books.CleanCommand;
+import de.mickare.schematicbooks.commands.books.DeleteCommand;
 import de.mickare.schematicbooks.commands.books.GetCommand;
 import de.mickare.schematicbooks.commands.books.ListCommand;
 import de.mickare.schematicbooks.commands.books.OffsetCommand;
@@ -30,6 +31,7 @@ public class MainSchematicItemsCommand extends AbstractMainMenuCommand<Schematic
     this.setCommand(new ListCommand(plugin));
     this.setCommand(new OffsetCommand(plugin).register());
     this.setCommand(new CleanCommand(plugin));
+    this.setCommand(new DeleteCommand(plugin));
 
     return this;
   }

@@ -565,7 +565,7 @@ public class Interactions {
     Rotation rotation = Rotation.fromYaw(info.getRotation().getYaw() - destRotation.getYaw());
 
     try {
-      File file = info.getSchematicFilePath(getPlugin().getSchematicFolder()).toFile();
+      File file = getPlugin().getInfoManager().getSchematicFileOf(info).toFile();
       if (!file.exists() || !file.isFile()) {
         player.sendMessage("§cFailed to build! Schematic does not exist!");
         return PlaceResult.FAILED;

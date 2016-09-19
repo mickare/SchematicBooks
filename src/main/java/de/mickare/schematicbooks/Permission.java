@@ -28,7 +28,8 @@ public enum Permission {
   PLACE_PLAIN_UNMASK(PLACE_PLAIN, "unmask"),
 
   OFFSET(SCHEMATIC_ITEM, "offset"),
-  CLEAN(SCHEMATIC_ITEM, "clean");
+  CLEAN(SCHEMATIC_ITEM, "clean"),
+  DELETE(SCHEMATIC_ITEM, "delete");
 
   private final String permission;
 

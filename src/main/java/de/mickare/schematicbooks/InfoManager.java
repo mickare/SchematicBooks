@@ -166,6 +166,10 @@ public class InfoManager implements Closeable {
     }
   }
 
+  public void invalidateInfo(String key) {
+    this.schematics.invalidate(key);
+  }
+
 
   public SchematicBookInfo getInfo(String key) throws ExecutionException {
     return schematics.get(key.toLowerCase());
