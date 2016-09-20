@@ -725,6 +725,22 @@ public class Interactions {
     dataFilters.put(BlockID.QUARTZ_BLOCK,
         new DataConverter(i -> i, d -> ((d >= 2) || d <= 4) ? 2 : d, a -> a));
 
+
+    dataFilters.put(BlockID.ACTIVATOR_RAIL, SUBID_ZERO);
+    dataFilters.put(BlockID.DETECTOR_RAIL, SUBID_ZERO);
+    dataFilters.put(BlockID.POWERED_RAIL, SUBID_ZERO);
+    dataFilters.put(BlockID.MINECART_TRACKS, SUBID_ZERO);
+
+    dataFilters.put(BlockID.CHEST, SUBID_ZERO);
+    dataFilters.put(BlockID.ENDER_CHEST, SUBID_ZERO);
+    dataFilters.put(BlockID.TRAPPED_CHEST, SUBID_ZERO);
+
+    dataFilters.put(BlockID.FURNACE, SUBID_ZERO);
+    dataFilters.put(BlockID.BURNING_FURNACE,
+        new DataConverter(i -> BlockID.FURNACE, d -> 0, a -> a));
+
+    dataFilters.put(BlockID.LADDER, SUBID_ZERO);
+
     // STAIRSt
     dataFilters.put(BlockID.OAK_WOOD_STAIRS, SUBID_ZERO);
     dataFilters.put(BlockID.COBBLESTONE_STAIRS, SUBID_ZERO);
@@ -788,12 +804,28 @@ public class Interactions {
     dataFilters.put(BlockID.REDSTONE_LAMP_ON, new DataConverter(Material.REDSTONE_LAMP_OFF, 0));
     dataFilters.put(BlockID.REDSTONE_REPEATER_OFF, new DataConverter(Material.DIODE, 0));
     dataFilters.put(BlockID.REDSTONE_REPEATER_ON, new DataConverter(Material.DIODE, 0));
+
     dataFilters.put(BlockID.COMPARATOR_OFF, new DataConverter(Material.REDSTONE_COMPARATOR, 0));
     dataFilters.put(BlockID.COMPARATOR_ON, new DataConverter(Material.REDSTONE_COMPARATOR, 0));
 
     dataFilters.put(BlockID.PISTON_BASE, new DataConverter(Material.PISTON_BASE, 0));
     dataFilters.put(BlockID.PISTON_STICKY_BASE, new DataConverter(Material.PISTON_STICKY_BASE, 0));
+    dataFilters.put(BlockID.PISTON_EXTENSION, new DataConverter(i -> i, d -> d, a -> 0));
+    dataFilters.put(BlockID.PISTON_MOVING_PIECE, new DataConverter(i -> i, d -> d, a -> 0));
 
+    dataFilters.put(BlockID.DISPENSER, SUBID_ZERO);
+    dataFilters.put(BlockID.DROPPER, SUBID_ZERO);
+    dataFilters.put(BlockID.HOPPER, SUBID_ZERO);
+    dataFilters.put(BlockID.LEVER, SUBID_ZERO);
+    dataFilters.put(BlockID.TRIPWIRE_HOOK, SUBID_ZERO);
+    dataFilters.put(BlockID.TRIPWIRE, new DataConverter(Material.STRING, 0));
+
+    dataFilters.put(BlockID.STONE_BUTTON, SUBID_ZERO);
+    dataFilters.put(BlockID.WOODEN_BUTTON, SUBID_ZERO);
+    dataFilters.put(BlockID.STONE_PRESSURE_PLATE, SUBID_ZERO);
+    dataFilters.put(BlockID.WOODEN_PRESSURE_PLATE, SUBID_ZERO);
+    dataFilters.put(BlockID.PRESSURE_PLATE_HEAVY, SUBID_ZERO);
+    dataFilters.put(BlockID.PRESSURE_PLATE_LIGHT, SUBID_ZERO);
   }
 
 
