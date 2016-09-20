@@ -740,6 +740,8 @@ public class Interactions {
         new DataConverter(i -> BlockID.FURNACE, d -> 0, a -> a));
 
     dataFilters.put(BlockID.LADDER, SUBID_ZERO);
+    
+    dataFilters.put(BlockID.BED, new DataConverter(Material.BED, 0));
 
     // STAIRSt
     dataFilters.put(BlockID.OAK_WOOD_STAIRS, SUBID_ZERO);
