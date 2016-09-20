@@ -42,9 +42,9 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.BlockIterator;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AtomicLongMap;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.blocks.BaseBlock;
@@ -59,6 +59,7 @@ import de.mickare.schematicbooks.data.SchematicEntity;
 import de.mickare.schematicbooks.event.EventFactory;
 import de.mickare.schematicbooks.event.PickupSchematicEvent;
 import de.mickare.schematicbooks.event.PlaceSchematicEvent;
+import de.mickare.schematicbooks.util.BiIntFunction;
 import de.mickare.schematicbooks.util.BukkitReflect;
 import de.mickare.schematicbooks.util.IntRegion;
 import de.mickare.schematicbooks.util.IntVector;
@@ -93,22 +94,6 @@ public class Interactions {
   private static final long DEFAULT_TIMEOUT = 500;
   private static final int DEFAULT_SIGHT_DISTANCE = 5;
 
-  private static final Set<EnhancedBaseItem> IGNORED_MATERIALS = buildIgnoredMaterials();
-
-  @SuppressWarnings("deprecation")
-  private static Set<EnhancedBaseItem> buildIgnoredMaterials() {
-    ImmutableSet.Builder<EnhancedBaseItem> b = ImmutableSet.builder();
-    for (short i = 0; i < 16; ++i) {
-      b.add(new EnhancedBaseItem(Material.BARRIER.getId(), i));
-    }
-    return b.build();
-  }
-
-  // Timeouts
-
-  // Helper for streams
-  private static final Predicate<? super Entry<EnhancedBaseItem, Integer>> MATERIALS_FILTER =
-      e -> (e.getKey().getId() != 0 && !IGNORED_MATERIALS.contains(e.getKey()) && e.getValue() > 0);
 
   public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
@@ -365,19 +350,19 @@ public class Interactions {
       if (oinfo.isPresent()) {
         SchematicBookInfo info = oinfo.get();
 
+        ItemStack schematicBook = SchematicBook.createItem(info);
         if (player.getGameMode() != GameMode.CREATIVE) {
           ItemStack item = player.getInventory().getItemInMainHand();
           if (item != null && item.getAmount() > 1) {
             item.setAmount(item.getAmount() - 1);
             player.getInventory().setItemInMainHand(item);
-            player.getInventory().addItem(SchematicBook.createItem(info));
+            player.getInventory().addItem(schematicBook);
           } else {
-            player.getInventory().setItemInMainHand(SchematicBook.createItem(info));
+            player.getInventory().setItemInMainHand(schematicBook);
           }
         } else {
-          ItemStack book = SchematicBook.createItem(info);
-          if (!player.getInventory().contains(book)) {
-            player.getInventory().addItem(book);
+          if (!player.getInventory().containsAtLeast(schematicBook, 1)) {
+            player.getInventory().addItem(schematicBook);
           }
         }
 
@@ -604,21 +589,18 @@ public class Interactions {
 
 
       if (player.getGameMode() != GameMode.CREATIVE) {
-        Map<EnhancedBaseItem, Integer> materials = WEUtils.getBlockTypeCount(holder.getClipboard());
-        materials = filterMaterials(materials);
-        if (!removeFrom(player, materials)) {
+        AtomicLongMap<EnhancedBaseItem> materials =
+            filterMaterials(WEUtils.getBlockTypeCount(holder.getClipboard()));
+        if (!removeFrom(player, materials.asMap())) {
           ComponentBuilder cb =
               new ComponentBuilder("§cYou are missing materials!\n§7Materials needed:");
-          materials.entrySet().stream().forEach(e -> {
+          materials.asMap().entrySet().forEach(e -> {
 
             cb.append("\n");
             cb.append("§7 " + e.getKey().getBlockType().getName() + ":" + e.getKey().getData()
                 + "§7  x  §d" + e.getValue() + "");
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_ITEM,
-                createItemInfo(e.getKey().getId(), e.getValue(), e.getKey().getData())));
-
-            // "{id:" + e.getKey().getId() + ",Damage:"
-            // + e.getKey().getData() + ",Count:" + e.getValue().intValue() + "}"
+                createItemInfo(e.getKey().getId(), e.getValue().intValue(), e.getKey().getData())));
 
           });
           player.spigot().sendMessage(cb.create());
@@ -696,15 +678,35 @@ public class Interactions {
   // **************************************************
   // Helper
 
+
   @RequiredArgsConstructor
   public static class DataConverter {
-    private @NonNull final IntUnaryOperator idFunc;
-    private @NonNull final IntUnaryOperator dataFunc;
-    private @NonNull final IntUnaryOperator amountFunc;
+    private @NonNull final BiIntFunction idFunc;
+    private @NonNull final BiIntFunction dataFunc;
+    private @NonNull final BiIntFunction amountFunc;
+
+
+    public DataConverter(Material material, int data) {
+      this(material, d -> data, a -> a);
+    }
+
+    public DataConverter(Material material, IntUnaryOperator dataFunc,
+        IntUnaryOperator amountFunc) {
+      this(i -> material.getId(), dataFunc, amountFunc);
+    }
+
+
+    public DataConverter(IntUnaryOperator idFunc, IntUnaryOperator dataFunc,
+        IntUnaryOperator amountFunc) {
+      this((i, d) -> idFunc.applyAsInt(i), (i, d) -> dataFunc.applyAsInt(d),
+          (d, a) -> amountFunc.applyAsInt(a));
+    }
 
     public void apply(EnhancedBaseItem item, int amount, AtomicLongMap<EnhancedBaseItem> map) {
-      map.addAndGet(new EnhancedBaseItem(idFunc.applyAsInt(item.getId()),
-          dataFunc.applyAsInt(item.getData())), amountFunc.applyAsInt(amount));
+      map.addAndGet(
+          new EnhancedBaseItem(idFunc.apply(item.getId(), item.getData()),
+              dataFunc.apply(item.getId(), item.getData())),
+          amountFunc.apply(item.getData(), amount));
     }
   }
 
@@ -713,7 +715,17 @@ public class Interactions {
 
     DataConverter SUBID_ZERO = new DataConverter(i -> i, d -> 0, a -> a);
 
-    // STAIRS
+    // WOOD, LOG, LEAVES
+    dataFilters.put(BlockID.LEAVES, new DataConverter(i -> i, d -> d % 4, a -> a));
+    dataFilters.put(BlockID.LEAVES2, new DataConverter(i -> i, d -> d % 4, a -> a));
+    dataFilters.put(BlockID.LOG, new DataConverter(i -> i, d -> d % 4, a -> a));
+    dataFilters.put(BlockID.LOG2, new DataConverter(i -> i, d -> d % 4, a -> a));
+
+    // Blocks
+    dataFilters.put(BlockID.QUARTZ_BLOCK,
+        new DataConverter(i -> i, d -> ((d >= 2) || d <= 4) ? 2 : d, a -> a));
+
+    // STAIRSt
     dataFilters.put(BlockID.OAK_WOOD_STAIRS, SUBID_ZERO);
     dataFilters.put(BlockID.COBBLESTONE_STAIRS, SUBID_ZERO);
     dataFilters.put(BlockID.BRICK_STAIRS, SUBID_ZERO);
@@ -729,7 +741,6 @@ public class Interactions {
     dataFilters.put(BlockID.RED_SANDSTONE_STAIRS, SUBID_ZERO);
     dataFilters.put(BlockID.PURPUR_STAIRS, SUBID_ZERO);
 
-
     // STEPS
     DataConverter DOUBLE_STEP = new DataConverter(i -> i + 1, d -> d % 8, a -> 2 * a);
     DataConverter STEP = new DataConverter(i -> i, d -> d % 8, a -> a);
@@ -743,43 +754,91 @@ public class Interactions {
     dataFilters.put(BlockID.PURPUR_SLAB, STEP);
 
     // WATER & LAVA
-    dataFilters.put(BlockID.WATER, new DataConverter(i -> 326, d -> 0, a -> a));
-    dataFilters.put(BlockID.STATIONARY_WATER, new DataConverter(i -> 326, d -> 0, a -> a));
-    dataFilters.put(BlockID.LAVA, new DataConverter(i -> 327, d -> 0, a -> a));
-    dataFilters.put(BlockID.STATIONARY_LAVA, new DataConverter(i -> 327, d -> 0, a -> a));
+    dataFilters.put(BlockID.WATER, new DataConverter(Material.WATER_BUCKET, 0));
+    dataFilters.put(BlockID.STATIONARY_WATER, new DataConverter(Material.WATER_BUCKET, 0));
+    dataFilters.put(BlockID.LAVA, new DataConverter(Material.LAVA_BUCKET, 0));
+    dataFilters.put(BlockID.STATIONARY_LAVA, new DataConverter(Material.LAVA_BUCKET, 0));
+
+    // Gate & Doors
+    dataFilters.put(BlockID.ACACIA_FENCE_GATE, new DataConverter(Material.ACACIA_FENCE_GATE, 0));
+    dataFilters.put(BlockID.BIRCH_FENCE_GATE, new DataConverter(Material.BIRCH_FENCE_GATE, 0));
+    dataFilters.put(BlockID.DARK_OAK_FENCE_GATE,
+        new DataConverter(Material.DARK_OAK_FENCE_GATE, 0));
+    dataFilters.put(BlockID.FENCE_GATE, new DataConverter(Material.FENCE_GATE, 0));
+    dataFilters.put(BlockID.JUNGLE_FENCE_GATE, new DataConverter(Material.JUNGLE_FENCE_GATE, 0));
+    dataFilters.put(BlockID.SPRUCE_FENCE_GATE, new DataConverter(Material.SPRUCE_FENCE_GATE, 0));
+
+    dataFilters.put(BlockID.TRAP_DOOR, new DataConverter(Material.TRAP_DOOR, 0));
+    dataFilters.put(BlockID.IRON_TRAP_DOOR, new DataConverter(Material.IRON_TRAPDOOR, 0));
+
+    dataFilters.put(BlockID.WOODEN_DOOR, new DataConverter(Material.WOOD_DOOR, 0));
+    dataFilters.put(BlockID.IRON_DOOR, new DataConverter(Material.IRON_DOOR, 0));
+    dataFilters.put(BlockID.SPRUCE_DOOR, new DataConverter(Material.SPRUCE_DOOR_ITEM, 0));
+    dataFilters.put(BlockID.BIRCH_DOOR, new DataConverter(Material.BIRCH_DOOR_ITEM, 0));
+    dataFilters.put(BlockID.JUNGLE_DOOR, new DataConverter(Material.JUNGLE_DOOR_ITEM, 0));
+    dataFilters.put(BlockID.ACACIA_DOOR, new DataConverter(Material.ACACIA_DOOR_ITEM, 0));
+    dataFilters.put(BlockID.DARK_OAK_DOOR, new DataConverter(Material.DARK_OAK_DOOR_ITEM, 0));
 
     // Double Flowers
     dataFilters.put(BlockID.DOUBLE_PLANT, new DataConverter(i -> i, d -> d % 8, a -> a));
 
-    // Other
-    dataFilters.put(BlockID.ANVIL, new DataConverter(i -> i, d -> 0, a -> a));
+    // Redstone
+    dataFilters.put(BlockID.REDSTONE_WIRE, new DataConverter(Material.REDSTONE, 0));
+    dataFilters.put(BlockID.REDSTONE_TORCH_OFF, new DataConverter(Material.REDSTONE_TORCH_ON, 0));
+    dataFilters.put(BlockID.REDSTONE_LAMP_ON, new DataConverter(Material.REDSTONE_LAMP_OFF, 0));
+    dataFilters.put(BlockID.REDSTONE_REPEATER_OFF, new DataConverter(Material.DIODE, 0));
+    dataFilters.put(BlockID.REDSTONE_REPEATER_ON, new DataConverter(Material.DIODE, 0));
+    dataFilters.put(BlockID.COMPARATOR_OFF, new DataConverter(Material.REDSTONE_COMPARATOR, 0));
+    dataFilters.put(BlockID.COMPARATOR_ON, new DataConverter(Material.REDSTONE_COMPARATOR, 0));
+
+    dataFilters.put(BlockID.PISTON_BASE, new DataConverter(Material.PISTON_BASE, 0));
+    dataFilters.put(BlockID.PISTON_STICKY_BASE, new DataConverter(Material.PISTON_STICKY_BASE, 0));
 
   }
 
-  private static Map<EnhancedBaseItem, Integer> filterMaterials(
+
+  private static final Set<EnhancedBaseItem> IGNORED_MATERIALS = Sets.newHashSet();
+  static {
+    for (short i = 0; i < 16; ++i) {
+      IGNORED_MATERIALS.add(new EnhancedBaseItem(Material.BARRIER.getId(), i));
+    }
+  }
+  private static final Predicate<? super Entry<EnhancedBaseItem, Integer>> MATERIALS_FILTER =
+      e -> (e.getKey().getId() != 0 && !IGNORED_MATERIALS.contains(e.getKey()) && e.getValue() > 0);
+
+  private static AtomicLongMap<EnhancedBaseItem> filterMaterials(
       Map<EnhancedBaseItem, Integer> mat) {
-    Map<EnhancedBaseItem, Integer> filtered = Maps.newHashMap();
+    AtomicLongMap<EnhancedBaseItem> filtered = AtomicLongMap.create();
 
-    mat.entrySet().stream();
+    mat.entrySet().stream().filter(MATERIALS_FILTER).forEach(e -> {
 
+      DataConverter converter = dataFilters.get(e.getKey().getType());
+      if (converter != null) {
+        converter.apply(e.getKey(), e.getValue(), filtered);
+      } else {
+        filtered.addAndGet(e.getKey(), e.getValue());
+      }
+
+    });
+
+    filtered.removeAllZeros();
     return filtered;
   }
 
-  public static boolean containsAtLeast(Player player, Map<EnhancedBaseItem, Integer> materials) {
+  public static boolean containsAtLeast(Player player, Map<EnhancedBaseItem, Long> materials) {
     final PlayerInventory inv = player.getInventory();
-    return !materials.entrySet().stream().filter(MATERIALS_FILTER)//
-        .filter(e -> !inv.containsAtLeast(e.getKey().toItemStack(1), e.getValue())).findAny()
-        .isPresent();
+    return !materials.entrySet().stream()
+        .filter(e -> !inv.containsAtLeast(e.getKey().toItemStack(1), e.getValue().intValue()))
+        .findAny().isPresent();
   }
 
-  public static boolean removeFrom(Player player, Map<EnhancedBaseItem, Integer> materials) {
+  public static boolean removeFrom(Player player, Map<EnhancedBaseItem, Long> materials) {
     if (!containsAtLeast(player, materials)) {
       return false;
     }
 
     List<ItemStack> toRemove = materials.entrySet().stream()//
-        .filter(MATERIALS_FILTER)//
-        .map(e -> e.getKey().toItemStack(e.getValue()))//
+        .map(e -> e.getKey().toItemStack(e.getValue().intValue()))//
         .collect(Collectors.toList());
 
     if (toRemove.isEmpty()) {
