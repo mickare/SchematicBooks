@@ -236,6 +236,11 @@ public class WEUtils {
       super(id);
     }
 
+
+    public EnhancedBaseItem(int id, int data) {
+      this(id, (short) data);
+    }
+
     public EnhancedBaseItem(int id, short data) {
       super(id, data);
     }

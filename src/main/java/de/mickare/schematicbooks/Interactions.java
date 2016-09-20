@@ -18,6 +18,7 @@ import java.util.Spliterators;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -43,8 +44,11 @@ import org.bukkit.util.BlockIterator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.AtomicLongMap;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.blocks.BlockID;
 import com.sk89q.worldedit.blocks.BlockType;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.session.ClipboardHolder;
@@ -67,6 +71,7 @@ import de.mickare.schematicbooks.we.WEUtils;
 import de.mickare.schematicbooks.we.WEUtils.EnhancedBaseItem;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -513,11 +518,11 @@ public class Interactions {
         BukkitReflect.convertItemStackToJson(new ItemStack(id, count, damage))).create();
   }
 
-  private static List<BaseBlock> EXCLUDED_BLOCKS = Lists.newArrayList(//
+  private static List<BaseBlock> BLOCKS_REPLACE_EXCLUDED = Lists.newArrayList(//
       new BaseBlock(BlockType.BEDROCK.getID(), -1) //
   );
 
-  private static List<BaseBlock> PLAIN_MASK = Lists.newArrayList(//
+  private static List<BaseBlock> BLOCKS_PLACE_PLAIN_MASK = Lists.newArrayList(//
       new BaseBlock(Material.BARRIER.getId(), -1) //
   );
 
@@ -575,7 +580,7 @@ public class Interactions {
 
       BukkitWorld world = new BukkitWorld(bukkitWorld);
       EntityEditSession editSession = new EntityEditSession(world, MAX_BLOCKS);
-      editSession.setMask(new ExcludeBlockMask(world, EXCLUDED_BLOCKS));
+      editSession.setMask(new ExcludeBlockMask(world, BLOCKS_REPLACE_EXCLUDED));
 
       ClipboardHolder holder = WEUtils.readSchematic(world, file);
 
@@ -600,10 +605,11 @@ public class Interactions {
 
       if (player.getGameMode() != GameMode.CREATIVE) {
         Map<EnhancedBaseItem, Integer> materials = WEUtils.getBlockTypeCount(holder.getClipboard());
+        materials = filterMaterials(materials);
         if (!removeFrom(player, materials)) {
           ComponentBuilder cb =
               new ComponentBuilder("§cYou are missing materials!\n§7Materials needed:");
-          materials.entrySet().stream().filter(MATERIALS_FILTER).forEach(e -> {
+          materials.entrySet().stream().forEach(e -> {
 
             cb.append("\n");
             cb.append("§7 " + e.getKey().getBlockType().getName() + ":" + e.getKey().getData()
@@ -639,7 +645,7 @@ public class Interactions {
       PasteOperation paste = WEUtils.newPaste(editSession, holder)//
           .ignoreAirBlocks(true).location(to);
       if (!plainPaste || !Permission.PLACE_PLAIN_UNMASK.checkPermission(player)) {
-        paste.addSourceMask(b -> new ExcludeBlockMask(b.clipboard(), PLAIN_MASK));
+        paste.addSourceMask(b -> new ExcludeBlockMask(b.clipboard(), BLOCKS_PLACE_PLAIN_MASK));
       }
       paste.buildAndPaste();
 
@@ -690,6 +696,74 @@ public class Interactions {
   // **************************************************
   // Helper
 
+  @RequiredArgsConstructor
+  public static class DataConverter {
+    private @NonNull final IntUnaryOperator idFunc;
+    private @NonNull final IntUnaryOperator dataFunc;
+    private @NonNull final IntUnaryOperator amountFunc;
+
+    public void apply(EnhancedBaseItem item, int amount, AtomicLongMap<EnhancedBaseItem> map) {
+      map.addAndGet(new EnhancedBaseItem(idFunc.applyAsInt(item.getId()),
+          dataFunc.applyAsInt(item.getData())), amountFunc.applyAsInt(amount));
+    }
+  }
+
+  private static final Map<Integer, DataConverter> dataFilters = Maps.newHashMap();
+  static {
+
+    DataConverter SUBID_ZERO = new DataConverter(i -> i, d -> 0, a -> a);
+
+    // STAIRS
+    dataFilters.put(BlockID.OAK_WOOD_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.COBBLESTONE_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.BRICK_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.STONE_BRICK_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.NETHER_BRICK_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.SANDSTONE_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.SPRUCE_WOOD_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.BIRCH_WOOD_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.JUNGLE_WOOD_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.QUARTZ_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.ACACIA_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.DARK_OAK_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.RED_SANDSTONE_STAIRS, SUBID_ZERO);
+    dataFilters.put(BlockID.PURPUR_STAIRS, SUBID_ZERO);
+
+
+    // STEPS
+    DataConverter DOUBLE_STEP = new DataConverter(i -> i + 1, d -> d % 8, a -> 2 * a);
+    DataConverter STEP = new DataConverter(i -> i, d -> d % 8, a -> a);
+    dataFilters.put(BlockID.DOUBLE_STEP, DOUBLE_STEP);
+    dataFilters.put(BlockID.STEP, STEP);
+    dataFilters.put(BlockID.DOUBLE_WOODEN_STEP, DOUBLE_STEP);
+    dataFilters.put(BlockID.WOODEN_STEP, STEP);
+    dataFilters.put(BlockID.DOUBLE_STEP2, DOUBLE_STEP);
+    dataFilters.put(BlockID.STEP2, STEP);
+    dataFilters.put(BlockID.PURPUR_DOUBLE_SLAB, DOUBLE_STEP);
+    dataFilters.put(BlockID.PURPUR_SLAB, STEP);
+
+    // WATER & LAVA
+    dataFilters.put(BlockID.WATER, new DataConverter(i -> 326, d -> 0, a -> a));
+    dataFilters.put(BlockID.STATIONARY_WATER, new DataConverter(i -> 326, d -> 0, a -> a));
+    dataFilters.put(BlockID.LAVA, new DataConverter(i -> 327, d -> 0, a -> a));
+    dataFilters.put(BlockID.STATIONARY_LAVA, new DataConverter(i -> 327, d -> 0, a -> a));
+
+    // Double Flowers
+    dataFilters.put(BlockID.DOUBLE_PLANT, new DataConverter(i -> i, d -> d % 8, a -> a));
+
+    // Other
+    dataFilters.put(BlockID.ANVIL, new DataConverter(i -> i, d -> 0, a -> a));
+
+  }
+
+  private static Map<EnhancedBaseItem, Integer> filterMaterials(
+      Map<EnhancedBaseItem, Integer> mat) {
+    Map<EnhancedBaseItem, Integer> filtered = Maps.newHashMap();
+
+    mat.entrySet().stream();
+
+    return filtered;
+  }
 
   public static boolean containsAtLeast(Player player, Map<EnhancedBaseItem, Integer> materials) {
     final PlayerInventory inv = player.getInventory();

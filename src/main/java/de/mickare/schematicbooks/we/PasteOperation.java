@@ -97,6 +97,7 @@ public class PasteOperation {
         Preconditions.checkNotNull(m);
         intersect.add(m);
       });
+      copy.setSourceMask(intersect);
     }
 
     return copy;
