@@ -204,6 +204,11 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
       List<String> description =
           meta.hasPages() ? Lists.newArrayList(meta.getPages()) : Lists.newArrayList();
 
+      final IntVector size = IntVector.from(holder.getClipboard().getDimensions());
+      final boolean movable = holder.getClipboard().getEntities().size() > 0
+          && WEUtils.getBlockTypeCount(holder.getClipboard()).isEmpty();
+      final boolean rotatable = movable && size.getX() == size.getZ();
+
       // Format pages
       for (int i = 0; i < description.size(); ++i) {
         String page = description.get(i);
@@ -214,13 +219,13 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
             Interactions.DATE_FORMAT.format(new Date(System.currentTimeMillis())));
         page = page.replace("{permission}", (permission == null) ? "" : permission);
         page = page.replace("{direction}", rotation.name());
-        page = page.replace("{size}",
-            IntVector.from(holder.getClipboard().getDimensions()).toString());
+        page = page.replace("{size}", size.toString());
         description.set(i, page);
       }
 
+
       SchematicBookInfo info =
-          new SchematicBookInfo(name, creator, rotation, description, permission, false, false);
+          new SchematicBookInfo(name, creator, rotation, description, permission, movable, rotatable);
 
       try {
         File schematicFile = getPlugin().getInfoManager().getSchematicFileOf(info).toFile();
