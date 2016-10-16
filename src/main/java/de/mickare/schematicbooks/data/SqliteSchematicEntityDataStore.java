@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 import org.sqlite.SQLiteDataSource;
 import org.sqlite.SQLiteJDBCLoader;
 
@@ -69,7 +70,9 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
               + " posStart_x INT, posStart_y INT, posStart_z INT ,"//
               + " posEnd_x INT , posEnd_y INT , posEnd_z INT ," //
               + " timestamp INTEGER," //
-              + " owner_msb INTEGER, owner_lsb INTEGER" //
+              + " owner_msb INTEGER, owner_lsb INTEGER ," //
+              + " moved_x DOUBLE, moved_y DOUBLE, moved_z DOUBLE ,"//
+              + " movable BOOLEAN, rotatable BOOLEAN "//
               + ")");
 
       executeUpdate(con, "CREATE INDEX IF NOT EXISTS index_pos ON " + TABLE_ENTITIES
@@ -106,8 +109,14 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
     long timestamp = rs.getLong("timestamp");
     UUID owner = new UUID(rs.getLong("owner_msb"), rs.getLong("owner_lsb"));
 
+    Vector moved =
+        new Vector(rs.getDouble("moved_x"), rs.getDouble("moved_y"), rs.getDouble("moved_z"));
+    boolean movable = rs.getBoolean("movable");
+    boolean rotatable = rs.getBoolean("rotatable");
+
     SchematicEntity entity = cache.computeIfAbsent(id);
-    entity.set(name, rotation, posStart, posEnd, entities, timestamp, owner);
+    entity.set(name, rotation, posStart, posEnd, entities, timestamp, owner, moved, movable,
+        rotatable);
     return entity;
   }
 
@@ -206,7 +215,7 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
       throw new DataStoreException("Could not remove entity ids, " + ids, e);
     }
   }
-
+  
   @Override
   public long save(SchematicEntity entity) throws DataStoreException {
     Preconditions.checkArgument(entity.isValid());
@@ -227,7 +236,9 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
             + " name = ?, rotation = ?, entities = ?," //
             + " posStart_x = ?, posStart_y = ?, posStart_z = ?,"//
             + " posEnd_x = ?, posEnd_y = ?, posEnd_z = ?,"//
-            + " timestamp = ?" //
+            + " timestamp = ?," //
+            + " moved_x = ?, moved_y = ?, moved_z = ?,"//
+            + " movable = ?, rotatable = ?,"//
             + " WHERE id = ?"//
         )) {
 
@@ -247,7 +258,14 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
 
           ps.setLong(10, entity.getTimestamp());
 
-          ps.setLong(11, entity.getId());
+          ps.setDouble(11, entity.getMoved().getX());
+          ps.setDouble(12, entity.getMoved().getY());
+          ps.setDouble(13, entity.getMoved().getZ());
+
+          ps.setBoolean(14, entity.isMovable());
+          ps.setBoolean(15, entity.isRotatable());
+          
+          ps.setLong(16, entity.getId());
 
           // Check if anything was updated, if true then return
           if (ps.executeUpdate() != 0) {
@@ -262,8 +280,10 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
               + " posStart_x, posStart_y, posStart_z,"//
               + " posEnd_x, posEnd_y, posEnd_z,"//
               + " timestamp,"//
+              + " moved_x, moved_y, moved_z,"//
+              + " movable, rotatable,"//
               + " owner_msb, owner_lsb" //
-              + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+              + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
           Statement.RETURN_GENERATED_KEYS)) {
 
 
@@ -283,10 +303,18 @@ public class SqliteSchematicEntityDataStore implements WorldSchematicEntityStore
         ps.setInt(9, max.getZ());
 
         ps.setLong(10, entity.getTimestamp());
-        UUID owner = entity.getOwner() != null ? entity.getOwner() : new UUID(0, 0);
-        ps.setLong(11, owner.getMostSignificantBits());
-        ps.setLong(12, owner.getLeastSignificantBits());
+        
+        ps.setDouble(11, entity.getMoved().getX());
+        ps.setDouble(12, entity.getMoved().getY());
+        ps.setDouble(13, entity.getMoved().getZ());
 
+        ps.setBoolean(14, entity.isMovable());
+        ps.setBoolean(15, entity.isRotatable());
+
+        UUID owner = entity.getOwner() != null ? entity.getOwner() : new UUID(0, 0);
+        ps.setLong(16, owner.getMostSignificantBits());
+        ps.setLong(17, owner.getLeastSignificantBits());
+        
         if (ps.executeUpdate() == 0) {
           throw new SQLException("Creating entity failed, no rows affected.");
         }

@@ -647,7 +647,7 @@ public class Interactions {
 
       try {
         SchematicEntity entity = new SchematicEntity(info.getName(), destRotation,
-            box.getMinPoint(), box.getMaxPoint(), entities, player.getUniqueId());
+            box.getMinPoint(), box.getMaxPoint(), entities, player.getUniqueId(), info.isMovable(), info.isRotatable());
 
         ParticleUtils.showParticlesForTime(getPlugin(), 20, bukkitWorld, entity, 0, 255, 0);
 

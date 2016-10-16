@@ -220,7 +220,7 @@ public class SaveCommand extends AbstractCommand<SchematicBooksPlugin> implement
       }
 
       SchematicBookInfo info =
-          new SchematicBookInfo(name, creator, rotation, description, permission);
+          new SchematicBookInfo(name, creator, rotation, description, permission, false, false);
 
       try {
         File schematicFile = getPlugin().getInfoManager().getSchematicFileOf(info).toFile();

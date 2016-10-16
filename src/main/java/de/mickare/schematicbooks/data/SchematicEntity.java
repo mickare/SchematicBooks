@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.util.Vector;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -22,7 +23,7 @@ public class SchematicEntity {
 
   private transient @Getter boolean valid = true;
   private transient @Getter boolean dirty = false;
-  
+
   private Long id = null;
 
   private @Getter String name;
@@ -32,6 +33,11 @@ public class SchematicEntity {
   private @Getter @Setter IntRegion hitBox;
   private @Getter long timestamp;
   private @Getter UUID owner;
+
+  private @Getter Vector moved;
+
+  private @Getter @Setter boolean movable = false;
+  private @Getter @Setter boolean rotatable = false;
 
   protected SchematicEntity(long id) {
     this.id = id;
@@ -47,8 +53,9 @@ public class SchematicEntity {
   }
 
   public SchematicEntity(String name, Rotation rotation, IntVector start, IntVector end,
-      Set<UUID> entities, UUID owner) {
-    set(name, rotation, start, end, entities, System.currentTimeMillis(), owner);
+      Set<UUID> entities, UUID owner, boolean movable, boolean rotatable) {
+    set(name, rotation, start, end, entities, System.currentTimeMillis(), owner, new Vector(),
+        movable, rotatable);
     this.dirty = true;
   }
 
@@ -62,8 +69,8 @@ public class SchematicEntity {
   }
 
   protected void set(String name, Rotation rotation, IntVector start, IntVector end,
-      Set<UUID> entities, long timestamp, UUID owner)
-      throws IllegalArgumentException, NullPointerException {
+      Set<UUID> entities, long timestamp, UUID owner, Vector moved, boolean movable,
+      boolean rotatable) throws IllegalArgumentException, NullPointerException {
     Preconditions.checkArgument(name.length() > 0);
     Preconditions.checkNotNull(rotation);
     Preconditions.checkNotNull(entities);
@@ -74,6 +81,10 @@ public class SchematicEntity {
     this.entities = ImmutableSet.copyOf(entities);
     this.timestamp = timestamp;
     this.owner = owner;
+
+    this.moved = moved;
+    this.movable = movable;
+    this.rotatable = rotatable;
 
     this.dirty = false;
   }

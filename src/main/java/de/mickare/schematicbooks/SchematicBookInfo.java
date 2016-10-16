@@ -1,10 +1,8 @@
 package de.mickare.schematicbooks;
 
-import java.nio.file.Path;
 import java.util.List;
 
 import org.bukkit.permissions.Permissible;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -33,12 +31,16 @@ public class SchematicBookInfo {
   private final List<String> description;
   private final String permission;
 
+  private boolean movable = false;
+  private boolean rotatable = false;
+
   // In World coordinates
   private @Getter @Setter @NonNull IntVectorAxis hitBoxOffset = new IntVectorAxis();
 
   public SchematicBookInfo(String name, String creator, //
       Rotation rotation, //
-      List<String> description, String permission) {
+      List<String> description, String permission, //
+      boolean movable, boolean rotatable) {
     Preconditions.checkNotNull(rotation);
     Preconditions.checkNotNull(description);
     this.name = checkStr(name);
@@ -46,6 +48,9 @@ public class SchematicBookInfo {
     this.rotation = rotation;
     this.description = Lists.newArrayList(description);
     this.permission = permission;
+
+    this.movable = movable;
+    this.rotatable = rotatable;
   }
 
   public String getKey() {
@@ -53,15 +58,12 @@ public class SchematicBookInfo {
   }
 
   /*
-  public Path getSchematicFilePath() {
-    return getSchematicFilePath(
-        JavaPlugin.getPlugin(SchematicBooksPlugin.class).getSchematicFolder());
-  }
-
-  public Path getSchematicFilePath(Path schematicFolder) {
-    return schematicFolder.resolve(this.getKey() + ".schematic");
-  }
-  */
+   * public Path getSchematicFilePath() { return getSchematicFilePath(
+   * JavaPlugin.getPlugin(SchematicBooksPlugin.class).getSchematicFolder()); }
+   * 
+   * public Path getSchematicFilePath(Path schematicFolder) { return
+   * schematicFolder.resolve(this.getKey() + ".schematic"); }
+   */
 
   public boolean hasPermission() {
     return permission != null && permission.length() > 0;
