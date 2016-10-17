@@ -1,8 +1,11 @@
 package de.mickare.schematicbooks.listener;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.bukkit.World;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.event.EventHandler;
 import org.bukkit.util.Vector;
 
@@ -23,33 +26,62 @@ public class ArmorToolListener extends AbstractListener {
 
     switch (event.getAction().getType()) {
       case MOVE:
-
-        if (event.getEntities().stream()//
-            .map(e -> getPlugin().getEntityManager().getEntityOf(e))//
-            .filter(e -> e.isPresent()).map(e -> e.get())//
-            .anyMatch(e -> !e.isMovable())) {
-          event.setCancelled(true);
-        }
-
+        handleMoveModifyEvent(event);
         break;
       case ROTATE:
-
-        if (event.getEntities().stream()//
-            .map(e -> getPlugin().getEntityManager().getEntityOf(e))//
-            .filter(e -> e.isPresent()).map(e -> e.get())//
-            .anyMatch(e -> !e.isRotatable())) {
-          event.setCancelled(true);
-        }
-
+        handleRotateModifyEvent(event);
         break;
       default:
-        if (event.getEntities().stream()//
+        if (event.getEntities().values().stream()//
             .map(e -> getPlugin().getEntityManager().getEntityOf(e))//
             .anyMatch(e -> e.isPresent())) {
           event.setCancelled(true);
+          return;
         }
     }
 
+  }
+
+  private void handleMoveModifyEvent(ArmorstandModifyEvent event) {
+    final Set<SchematicEntity> entities = event.getEntities().values().stream()//
+        .map(e -> getPlugin().getEntityManager().getEntityOf(e))//
+        .filter(e -> e.isPresent()).map(e -> e.get()).collect(Collectors.toSet());
+
+    if (entities.stream().anyMatch(e -> !e.isMovable())) {
+      event.setCancelled(true);
+      return;
+    }
+
+    final Set<UUID> entityUUIDs =
+        entities.stream().flatMap(e -> e.getEntities().stream()).collect(Collectors.toSet());
+
+    final World world = event.getPlayer().getWorld();
+    final Set<ArmorStand> armorstands = world.getEntitiesByClass(ArmorStand.class).stream()//
+        .filter(a -> entityUUIDs.contains(a.getUniqueId()))//
+        .collect(Collectors.toSet());
+
+    event.addAllEntities(armorstands);
+  }
+
+  private void handleRotateModifyEvent(ArmorstandModifyEvent event) {
+    final Set<SchematicEntity> entities = event.getEntities().values().stream()//
+        .map(e -> getPlugin().getEntityManager().getEntityOf(e))//
+        .filter(e -> e.isPresent()).map(e -> e.get()).collect(Collectors.toSet());
+
+    if (entities.stream().anyMatch(e -> !e.isRotatable())) {
+      event.setCancelled(true);
+      return;
+    }
+
+    final Set<UUID> entityUUIDs =
+        entities.stream().flatMap(e -> e.getEntities().stream()).collect(Collectors.toSet());
+
+    final World world = event.getPlayer().getWorld();
+    final Set<ArmorStand> armorstands = world.getEntitiesByClass(ArmorStand.class).stream()//
+        .filter(a -> entityUUIDs.contains(a.getUniqueId()))//
+        .collect(Collectors.toSet());
+
+    event.addAllEntities(armorstands);
   }
 
   @EventHandler
