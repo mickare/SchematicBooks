@@ -85,6 +85,11 @@ public class ArmorToolListener extends AbstractListener {
     event.addAllEntities(armorstands);
   }
 
+  private boolean isAcceptableMove(SchematicEntity e, Vector moved) {
+    return Math.abs(moved.getX()) <= 1 && Math.abs(moved.getY()) <= 1
+        && Math.abs(moved.getZ()) <= 1;
+  }
+
   @EventHandler
   public void onArmorMove(ArmorMoveEvent event) {
 
@@ -95,8 +100,8 @@ public class ArmorToolListener extends AbstractListener {
 
     for (SchematicEntity e : entities) {
       Vector moved = e.getMoved().clone().add(event.getMoved());
-      event.getPlayer().sendMessage(ChatColor.RED + "Moved: " + moved.toString());
-      if (moved.lengthSquared() > 1) {
+      // event.getPlayer().sendMessage(ChatColor.RED + "Moved: " + moved.toString());
+      if (!isAcceptableMove(e, moved)) {
         event.setResult(ArmorMoveEvent.Result.CANCEL);
         return;
       }
