@@ -95,7 +95,7 @@ public class ArmorToolListener extends AbstractListener {
     for (SchematicEntity e : entities) {
       Vector moved = e.getMoved().clone().add(event.getMoved());
       if (moved.lengthSquared() >= 1) {
-        event.setCancelled(true);
+        event.setResult(ArmorMoveEvent.Result.CANCEL);
         break;
       }
     }
