@@ -14,6 +14,7 @@ import de.mickare.armortools.event.ArmorRotateEvent;
 import de.mickare.armortools.event.ArmorstandModifyEvent;
 import de.mickare.schematicbooks.SchematicBooksPlugin;
 import de.mickare.schematicbooks.data.SchematicEntity;
+import net.md_5.bungee.api.ChatColor;
 
 public class ArmorToolListener extends AbstractListener {
 
@@ -94,9 +95,10 @@ public class ArmorToolListener extends AbstractListener {
 
     for (SchematicEntity e : entities) {
       Vector moved = e.getMoved().clone().add(event.getMoved());
-      if (moved.lengthSquared() >= 1) {
+      event.getPlayer().sendMessage(ChatColor.RED + "Moved: " + moved.toString());
+      if (moved.lengthSquared() > 1) {
         event.setResult(ArmorMoveEvent.Result.CANCEL);
-        break;
+        return;
       }
     }
 
